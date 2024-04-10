@@ -16,7 +16,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
-
+using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
@@ -100,6 +100,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected bool isSetup = false;
 
         protected List<TalkManager.ListItem> listCurrentTopics; // current topic list metadata of displayed topic list in topic frame
+        protected List<TalkManager.ListItem> csvTopics = new List<TalkManager.ListItem>();
 
         protected Texture2D textureBackground;        
         protected Texture2D textureHighlightedOptions;
@@ -285,6 +286,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             talkOptionLastUsed = TalkOption.None;
             toneLastUsed = -1;
             currentQuestion = "";
+
+            LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
         }
 
         public override void OnPop()
@@ -939,13 +942,69 @@ namespace DaggerfallWorkshop.Game.UserInterface
             buttonCategoryThings.BackgroundTexture = textureCategoryThingGrayedOut;
             buttonCategoryWork.BackgroundTexture = textureCategoryWorkGrayedOut;
 
-            SetListboxTopics(ref listboxTopic, TalkManager.Instance.ListTopicTellMeAbout);
+            //SetListboxTopics(ref listboxTopic, TalkManager.Instance.ListTopicTellMeAbout);
+            SetListboxTopics(ref listboxTopic, csvTopics);
             listboxTopic.Update();
 
             UpdateScrollBarsTopic();
             UpdateScrollButtonsTopic();
 
             UpdateQuestion(listboxTopic.SelectedIndex);
+        }
+
+        public void LoadDialogueTopicsFromCSV()
+        {
+            string filePath = "Dialogue.csv"; // Path to your CSV file
+            if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
+            {
+                Debug.Log("CSV asset found, reading content...");
+                using (StringReader reader = new StringReader(csvAsset.text))
+                {
+                    string line = reader.ReadLine(); // Read header line
+                    int lineNumber = 1;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        Debug.LogFormat("Reading line {0}: {1}", lineNumber, line);
+                        string[] values = line.Split('\t');
+                        TalkManager.ListItem item = new TalkManager.ListItem
+                        {
+                            type = TalkManager.ListItemType.Item,
+                            //dialogNum = int.Parse(values[0]),
+                            caption = values[1],
+                            questionType = TalkManager.QuestionType.OrganizationInfo,
+                            index = int.Parse(values[10])//csvTopics.Count
+                        };
+                        Debug.LogFormat("Adding ListItem to csvTopics: Caption = {0}, Index = {1}", item.caption, item.index);
+                        csvTopics.Add(item);
+                        lineNumber++;
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError("CSV asset not found.");
+            }
+        }
+
+        public string GetAnswerFromCSV(int index)
+        {
+            string filePath = "Dialogue.csv"; // Path to your CSV file
+            if (ModManager.Instance.TryGetAsset(filePath, clone: false, out TextAsset csvAsset))
+            {
+                using (StringReader reader = new StringReader(csvAsset.text))
+                {
+                    string line = reader.ReadLine(); // Read header line
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        string[] values = line.Split('\t'); // Split the line into columns by tabs
+                        if (int.Parse(values[10]) == index) // Unique index identifier
+                        {
+                            return values[2]; // Assuming 'answer' is in the fourth column (index 3)
+                        }
+                    }
+                }
+            }
+            return "I don't know about that."; // Default answer if not found in the CSV
         }
 
         protected virtual void SetTalkModeWhereIs()
@@ -1317,7 +1376,18 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
             else if (listItem.type == TalkManager.ListItemType.Item)
             {
-                string answer = TalkManager.Instance.GetAnswerText(listItem);
+                string answer;
+                // Check if listItem's index is equal to or greater than 1000 to decide from where to get the answer
+                if (listItem.index >= 1000)
+                {
+                    // Fetch the answer from the CSV
+                    answer = GetAnswerFromCSV(listItem.index);
+                }
+                else
+                {
+                    // Fetch the answer using the vanilla method
+                    answer = TalkManager.Instance.GetAnswerText(listItem);
+                }
 
                 SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
 

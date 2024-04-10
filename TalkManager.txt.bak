@@ -3214,7 +3214,7 @@ namespace DaggerfallWorkshop.Game
             string filePath = "Dialogue.csv"; // Path to your CSV file
             if (ModManager.Instance.TryGetAsset(filePath, clone: false, out TextAsset csvAsset))
             {
-            Debug.Log("[DIA] CSV asset found, reading content...");
+            Debug.Log("CSV asset found, reading content...");
 
                 using (StringReader reader = new StringReader(csvAsset.text))
                 {

@@ -1,8 +1,8 @@
-dialogNum	type	caption	answer	key	factionID	questionType	npcKnowledgeAboutItem	buildingKey	npcInSameBuildingAsTopic	questID
-1		World of Daggerfall	The World of Daggerfall Project is a community effort to fill Daggerfall's vast wilderness with thousands upon thousands of rocks, mountains, bandit camps, forts, towers, ruins, and shrines.							
-2		carademono	A modder with a heart of gold and the face of a monkey.							
-3		Kab the Bird Ranger	The head honcho with mad coding skills.							
-4		Kamer	An incomparable mad lad.							
-5		Cliffworms	The Iliac Bay’s finest interior decorator.							
-6		Ninelan	The pixel artist to rule them all.							
-7		Jehuty	A raconteur of great reknown.							
+type	caption	answer	key	factionID	questionType	npcKnowledgeAboutItem	buildingKey	npcInSameBuildingAsTopic	questID	index
+	World of Daggerfall	The World of Daggerfall Project is a community effort to fill Daggerfall's vast wilderness with thousands upon thousands of rocks, mountains, bandit camps, forts, towers, ruins, and shrines.								1000
+	carademono	A modder with a heart of gold and the face of a monkey.								1001
+	Kab the Bird Ranger	The head honcho with mad coding skills.								1002
+	Kamer	An incomparable mad lad.								1003
+	Cliffworms	The Iliac Bay’s finest interior decorator.								1004
+	Ninelan	The pixel artist to rule them all.								1005
+	Jehuty	A raconteur of great reknown.								1006
