@@ -77,12 +77,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected TalkCategory selectedTalkCategory = TalkCategory.Location;
         protected TalkCategory talkCategoryLastUsed = TalkCategory.None;
 
-        public enum FacePortraitArchive
-        {
-            CommonFaces, // mobile npcs, common static npcs
-            SpecialFaces  // story npcs and special npcs
-        }
-
         static public int TalkToneToIndex(TalkTone talkTone)
         {
             switch (talkTone)
@@ -351,7 +345,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }                
         }
 
-        public virtual void SetNPCPortrait(FacePortraitArchive facePortraitArchive, int recordId)
+        public override void SetNPCPortrait(FacePortraitArchive facePortraitArchive, int recordId)
         {
             // Load npc portrait
             string imageName = facePortraitArchive == FacePortraitArchive.CommonFaces ? portraitImgName : facesImgName;
