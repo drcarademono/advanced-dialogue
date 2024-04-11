@@ -1388,6 +1388,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 string answer;
                 // Check if listItem's index is equal to or greater than 1000 to decide from where to get the answer
+                if (listItem.questionType == TalkManager.QuestionType.News) 
+                {
+                answer = "I like news"; // CdM: This is where we'll call a method that mixes quest rumors / etc with better news from our CSVs.
+                } else
                 if (listItem.index >= 1000)
                 {
                     // Fetch the answer from the CSV
