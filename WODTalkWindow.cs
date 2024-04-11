@@ -943,8 +943,17 @@ namespace DaggerfallWorkshop.Game.UserInterface
             buttonCategoryThings.BackgroundTexture = textureCategoryThingGrayedOut;
             buttonCategoryWork.BackgroundTexture = textureCategoryWorkGrayedOut;
 
-            //SetListboxTopics(ref listboxTopic, TalkManager.Instance.ListTopicTellMeAbout);
-            SetListboxTopics(ref listboxTopic, csvTopics);
+            // Create a new list to hold the merged topics
+            List<TalkManager.ListItem> baseTopics = new List<TalkManager.ListItem>(TalkManager.Instance.ListTopicTellMeAbout);
+
+            // Remove all items with QuestionType.OrganizationInfo (ie, Factions questions)
+            baseTopics.RemoveAll(item => item.questionType == TalkManager.QuestionType.OrganizationInfo);
+
+            // Add all custom topics from csvTopics to the filtered list
+            baseTopics.AddRange(csvTopics);
+
+            // Use the filtered list to set the topics in your list box
+            SetListboxTopics(ref listboxTopic, baseTopics);
             listboxTopic.Update();
 
             UpdateScrollBarsTopic();
