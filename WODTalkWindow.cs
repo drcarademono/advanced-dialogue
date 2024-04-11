@@ -295,7 +295,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             currentQuestion = "";
 
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
-            GetStaticNPCData();
+            GetNPCData();
 
             UpdateNameNPC();
         }
@@ -1415,7 +1415,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             inListboxTopicContentUpdate = false;
         }
 
-        public void GetStaticNPCData()
+        public void GetNPCData()
         {
             Debug.Log("Checking NPC Type...");
             if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
@@ -1425,7 +1425,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 if (staticNpc != null)
                 {
                     StaticNPC.NPCData npcData = staticNpc.Data;
-                    
+                    FactionFile.FactionData factionData;
+                    PersistentFactionData persistentFactionData = GameManager.Instance.PlayerEntity.FactionData;
+
                     // Print all relevant NPC data in the debug log
                     Debug.LogFormat("NPC Hash: {0}", npcData.hash);
                     Debug.LogFormat("NPC Flags: {0}", npcData.flags);
@@ -1442,11 +1444,39 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     Debug.LogFormat("NPC Billboard Record Index: {0}", npcData.billboardRecordIndex);
                     Debug.LogFormat("NPC Display Name: {0}", staticNpc.DisplayName);
                     Debug.LogFormat("Is Child NPC: {0}", staticNpc.IsChildNPC);
+
+
+                    // Retrieve and print NPC Faction Details
+                    if (persistentFactionData.GetFactionData(npcData.factionID, out factionData))
+                    {
+                        // Print Faction Information
+                        Debug.LogFormat("Faction Name: {0}", factionData.name);
+                        Debug.LogFormat("Faction Parent: {0}", factionData.parent);
+                        Debug.LogFormat("Faction Type: {0}", factionData.type);
+                        Debug.LogFormat("Faction Reputation: {0}", factionData.rep);
+                        Debug.LogFormat("Faction Region: {0}", factionData.region);
+                        Debug.LogFormat("Faction Power: {0}", factionData.power);
+                        Debug.LogFormat("Faction Allies: {0}, {1}, {2}", factionData.ally1, factionData.ally2, factionData.ally3);
+                        Debug.LogFormat("Faction Enemies: {0}, {1}, {2}", factionData.enemy1, factionData.enemy2, factionData.enemy3);
+                        Debug.LogFormat("Faction Social Group: {0}", factionData.sgroup);
+                        Debug.LogFormat("Faction Guild Group: {0}", factionData.ggroup);
+                        Debug.LogFormat("Faction Vampire: {0}", factionData.vam);
+                        Debug.LogFormat("Faction Children: {0}", string.Join(", ", factionData.children));
+                    }
                 }
             }
             else if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Mobile)
             {
                 Debug.Log("Talking to a Mobile NPC");
+                MobilePersonNPC mobileNpc = TalkManager.Instance.MobileNPC;
+                if (mobileNpc != null)
+                {
+                    // Print all relevant Mobile NPC data in the debug log
+                    Debug.LogFormat("Mobile NPC Race: {0}", mobileNpc.Race);
+                    Debug.LogFormat("Mobile NPC Gender: {0}", mobileNpc.Gender);
+                    Debug.LogFormat("Mobile NPC Outfit Variant: {0}", mobileNpc.PersonOutfitVariant);
+                    Debug.LogFormat("Mobile NPC Is Guard: {0}", mobileNpc.IsGuard);
+                }
             }
             else
             {
