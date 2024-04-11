@@ -12,6 +12,7 @@
 using UnityEngine;
 using System;
 using System.IO;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using DaggerfallWorkshop.Game.UserInterface;
@@ -29,6 +30,19 @@ namespace DaggerfallWorkshop.Game.UserInterface
 {
     public class WODTalkWindow : DaggerfallTalkWindow
     {
+
+        public class DialogueListItem
+        {
+            public TalkManager.ListItem ListItem { get; set; }
+            public Dictionary<string, object> DialogueData { get; set; }
+
+            public DialogueListItem(TalkManager.ListItem listItem)
+            {
+                ListItem = listItem;
+                DialogueData = new Dictionary<string, object>();
+            }
+        }
+
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
         protected const string highlightedOptionsImgName = "TALK03I0.IMG";
@@ -94,7 +108,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected bool isSetup = false;
 
         protected List<TalkManager.ListItem> listCurrentTopics; // current topic list metadata of displayed topic list in topic frame
-        protected List<TalkManager.ListItem> csvTopics = new List<TalkManager.ListItem>();
 
         protected Texture2D textureBackground;        
         protected Texture2D textureHighlightedOptions;
@@ -307,9 +320,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
             GameManager.Instance.PlayerEntity.Notebook.AddNote(copiedEntries);
 
             // Clear the custom topics
-            if (csvTopics != null)
+            if (dialogueListItems != null)
             {
-                csvTopics.Clear();
+                dialogueListItems.Clear();
             }
 
         }
@@ -934,8 +947,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return;
             talkOptionLastUsed = selectedTalkOption;
 
-            talkCategoryLastUsed = TalkCategory.None; // important so that category is enabled again when switching back to TalkOption.WhereIs
+            talkCategoryLastUsed = TalkCategory.None;  // Important to enable category when switching back
 
+            // Update UI elements
             buttonTellMeAbout.BackgroundTexture = textureTellMeAboutHighlighted;
             buttonWhereIs.BackgroundTexture = textureWhereIsGrayedOut;
             buttonCategoryLocation.BackgroundTexture = textureCategoryLocationGrayedOut;
@@ -944,16 +958,20 @@ namespace DaggerfallWorkshop.Game.UserInterface
             buttonCategoryWork.BackgroundTexture = textureCategoryWorkGrayedOut;
 
             // Create a new list to hold the merged topics
-            List<TalkManager.ListItem> baseTopics = new List<TalkManager.ListItem>(TalkManager.Instance.ListTopicTellMeAbout);
+            List<DialogueListItem> baseTopics = TalkManager.Instance.ListTopicTellMeAbout
+                .Select(item => new DialogueListItem(item)).ToList();
 
             // Remove all items with QuestionType.OrganizationInfo (ie, Factions questions)
-            baseTopics.RemoveAll(item => item.questionType == TalkManager.QuestionType.OrganizationInfo);
+            baseTopics.RemoveAll(dialogueItem => dialogueItem.ListItem.questionType == TalkManager.QuestionType.OrganizationInfo);
 
-            // Add all custom topics from csvTopics to the filtered list
-            baseTopics.AddRange(csvTopics);
+            // Sort the list by caption alphabetically (case-insensitive)
+            dialogueListItems.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
+
+            // Add all custom topics from dialogueListItems to the filtered list
+            baseTopics.AddRange(dialogueListItems);
 
             // Use the filtered list to set the topics in your list box
-            SetListboxTopics(ref listboxTopic, baseTopics);
+            SetListboxTopics(ref listboxTopic, baseTopics.Select(di => di.ListItem).ToList());
             listboxTopic.Update();
 
             UpdateScrollBarsTopic();
@@ -962,30 +980,32 @@ namespace DaggerfallWorkshop.Game.UserInterface
             UpdateQuestion(listboxTopic.SelectedIndex);
         }
 
+        public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
+
         public void LoadDialogueTopicsFromCSV()
         {
             string filePath = "Dialogue.csv"; // Path to your CSV file
             if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
             {
-                Debug.Log("CSV asset found, reading content...");
                 using (StringReader reader = new StringReader(csvAsset.text))
                 {
                     string line = reader.ReadLine(); // Read header line
                     int lineNumber = 1;
                     while ((line = reader.ReadLine()) != null)
                     {
-                        Debug.LogFormat("Reading line {0}: {1}", lineNumber, line);
                         string[] values = line.Split('\t');
                         TalkManager.ListItem item = new TalkManager.ListItem
                         {
                             type = TalkManager.ListItemType.Item,
-                            //dialogNum = int.Parse(values[0]),
                             caption = values[1],
                             questionType = TalkManager.QuestionType.OrganizationInfo,
-                            index = int.Parse(values[10])//csvTopics.Count
+                            index = lineNumber
                         };
-                        Debug.LogFormat("Adding ListItem to csvTopics: Caption = {0}, Index = {1}", item.caption, item.index);
-                        csvTopics.Add(item);
+                        DialogueListItem dialogueItem = new DialogueListItem(item);
+                        dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
+                        dialogueItem.DialogueData.Add("Answer", values[2]);
+
+                        dialogueListItems.Add(dialogueItem);
                         lineNumber++;
                     }
                 }
@@ -994,27 +1014,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 Debug.LogError("CSV asset not found.");
             }
-        }
-
-        public string GetAnswerFromCSV(int index)
-        {
-            string filePath = "Dialogue.csv"; // Path to your CSV file
-            if (ModManager.Instance.TryGetAsset(filePath, clone: false, out TextAsset csvAsset))
-            {
-                using (StringReader reader = new StringReader(csvAsset.text))
-                {
-                    string line = reader.ReadLine(); // Read header line
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        string[] values = line.Split('\t'); // Split the line into columns by tabs
-                        if (int.Parse(values[10]) == index) // Unique index identifier
-                        {
-                            return values[2]; // Assuming 'answer' is in the fourth column (index 3)
-                        }
-                    }
-                }
-            }
-            return "I don't know about that."; // Default answer if not found in the CSV
         }
 
         protected virtual void SetTalkModeWhereIs()
@@ -1390,24 +1389,44 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 // Check if listItem's index is equal to or greater than 1000 to decide from where to get the answer
                 if (listItem.questionType == TalkManager.QuestionType.News) 
                 {
-                answer = "I like news"; // CdM: This is where we'll call a method that mixes quest rumors / etc with better news from our CSVs.
+                answer = TalkManager.Instance.GetNewsOrRumors(); // CdM: This is where we'll call a method that mixes quest rumors / etc with better news from our CSVs.
                 } else
-                if (listItem.index >= 1000)
                 {
-                    // Fetch the answer from the CSV
-                    answer = GetAnswerFromCSV(listItem.index);
+                    // Check if this ListItem has a DialogueListItem wrapper
+                    DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
+                    if (dialogueItem != null)
+                    {
+                        // Fetch the answer from the DialogueData
+                        answer = dialogueItem.DialogueData["Answer"] as string;
+                    }
+                    else
+                    {
+                        // Fetch the answer using the vanilla method
+                        answer = TalkManager.Instance.GetAnswerText(listItem);
+                    }
                 }
-                else
-                {
-                    // Fetch the answer using the vanilla method
-                    answer = TalkManager.Instance.GetAnswerText(listItem);
-                }
-
                 SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
 
                 UpdateQuestion(listboxTopic.SelectedIndex); // and get new question text for textlabel
             }
             inListboxTopicContentUpdate = false;
+        }
+
+        public void GetStaticNPCData()
+        {
+            if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
+            {
+                StaticNPC staticNpc = TalkManager.Instance.StaticNPC;
+                if (staticNpc != null)
+                {
+                    StaticNPC.NPCData npcData = staticNpc.Data;
+                    // Now you have access to npcData, which includes information like factionID, nameSeed, race, etc.
+                    
+                    // Example: Use the faction ID
+                    int factionID = npcData.factionID;
+                    // Do something with factionID or other npcData fields as needed
+                }
+            }
         }
 
         #region event handlers
