@@ -295,6 +295,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
             currentQuestion = "";
 
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
+            GetStaticNPCData();
+
+            UpdateNameNPC();
         }
 
         public override void OnPop()
@@ -1414,18 +1417,40 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public void GetStaticNPCData()
         {
+            Debug.Log("Checking NPC Type...");
             if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
             {
+                Debug.Log("Talking to a Static NPC");
                 StaticNPC staticNpc = TalkManager.Instance.StaticNPC;
                 if (staticNpc != null)
                 {
                     StaticNPC.NPCData npcData = staticNpc.Data;
-                    // Now you have access to npcData, which includes information like factionID, nameSeed, race, etc.
                     
-                    // Example: Use the faction ID
-                    int factionID = npcData.factionID;
-                    // Do something with factionID or other npcData fields as needed
+                    // Print all relevant NPC data in the debug log
+                    Debug.LogFormat("NPC Hash: {0}", npcData.hash);
+                    Debug.LogFormat("NPC Flags: {0}", npcData.flags);
+                    Debug.LogFormat("NPC Faction ID: {0}", npcData.factionID);
+                    Debug.LogFormat("NPC Name Seed: {0}", npcData.nameSeed);
+                    Debug.LogFormat("NPC Gender: {0}", npcData.gender);
+                    Debug.LogFormat("NPC Race: {0}", npcData.race);
+                    Debug.LogFormat("NPC Context: {0}", npcData.context);
+                    Debug.LogFormat("NPC Map ID: {0}", npcData.mapID);
+                    Debug.LogFormat("NPC Location ID: {0}", npcData.locationID);
+                    Debug.LogFormat("NPC Building Key: {0}", npcData.buildingKey);
+                    Debug.LogFormat("NPC Name Bank: {0}", npcData.nameBank);
+                    Debug.LogFormat("NPC Billboard Archive Index: {0}", npcData.billboardArchiveIndex);
+                    Debug.LogFormat("NPC Billboard Record Index: {0}", npcData.billboardRecordIndex);
+                    Debug.LogFormat("NPC Display Name: {0}", staticNpc.DisplayName);
+                    Debug.LogFormat("Is Child NPC: {0}", staticNpc.IsChildNPC);
                 }
+            }
+            else if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Mobile)
+            {
+                Debug.Log("Talking to a Mobile NPC");
+            }
+            else
+            {
+                Debug.Log("No NPC or Unknown NPC Type");
             }
         }
 
