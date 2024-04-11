@@ -305,6 +305,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 prev = idx;
             }
             GameManager.Instance.PlayerEntity.Notebook.AddNote(copiedEntries);
+
+            // Clear the custom topics
+            if (csvTopics != null)
+            {
+                csvTopics.Clear();
+            }
+
         }
 
         public override void Update()
