@@ -1004,61 +1004,60 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         private bool EvaluateConditions(DialogueListItem item)
         {
-            // Check if the condition fields are present
-            if (!item.DialogueData.ContainsKey("C1_Variable") || !item.DialogueData.ContainsKey("C1_Comparison") || !item.DialogueData.ContainsKey("C1_Value"))
+            // Check if the condition fields are present for C1, C2, and C3. If not, show the item by default.
+            // It's assumed that a condition must be fully specified (i.e., all its fields are present) to be considered.
+            for (int i = 1; i <= 3; i++)
             {
-                Debug.Log("Condition fields missing, showing item by default.");
-                return true;  // If any condition field is missing, show the item by default
-            }
+                string cVariable = $"C{i}_Variable";
+                string cComparison = $"C{i}_Comparison";
+                string cValue = $"C{i}_Value";
 
-            string variableName = item.DialogueData["C1_Variable"] as string;
-            string comparisonOperator = item.DialogueData["C1_Comparison"] as string;
-            string valueToCompare = item.DialogueData["C1_Value"] as string;
+                // If any of the condition fields are missing or empty, the condition is not considered.
+                if (!item.DialogueData.ContainsKey(cVariable) || !item.DialogueData.ContainsKey(cComparison) || !item.DialogueData.ContainsKey(cValue))
+                    continue;
 
-            // If the fields are present but empty, show the item
-            if (string.IsNullOrWhiteSpace(variableName) || string.IsNullOrWhiteSpace(comparisonOperator) || string.IsNullOrWhiteSpace(valueToCompare))
-            {
-                Debug.Log("Condition fields are empty, showing item by default.");
-                return true;
-            }
+                string variableName = item.DialogueData[cVariable] as string;
+                string comparisonOperator = item.DialogueData[cComparison] as string;
+                string valueToCompare = item.DialogueData[cValue] as string;
 
-            // Access the corresponding variable from filterVariables
-            if (filterVariables.TryGetValue(variableName, out object variableValue))
-            {
-                // Split the valueToCompare string into an array of values
-                string[] valuesToCompare = valueToCompare.Split('|');
+                if (string.IsNullOrWhiteSpace(variableName) || string.IsNullOrWhiteSpace(comparisonOperator) || string.IsNullOrWhiteSpace(valueToCompare))
+                    continue;
 
-                // Perform comparison based on the operator
-                switch (comparisonOperator)
+                // Check if the variable exists in the filterVariables dictionary
+                if (filterVariables.TryGetValue(variableName, out object variableValue))
                 {
-                    case "==":
-                        // Check if the variableValue matches any value in the valuesToCompare array
-                        foreach (string value in valuesToCompare)
-                        {
-                            if (variableValue.ToString().Equals(value.Trim(), StringComparison.OrdinalIgnoreCase))
-                                return true;
-                        }
-                        break;
-                    case "!=":
-                        // Check if the variableValue does not match all values in the valuesToCompare array
-                        bool allNotEqual = true;
-                        foreach (string value in valuesToCompare)
-                        {
-                            if (variableValue.ToString().Equals(value.Trim(), StringComparison.OrdinalIgnoreCase))
-                            {
-                                allNotEqual = false;
-                                break;
-                            }
-                        }
-                        return allNotEqual;
-                    // Add more cases for other operators as needed
-                    default:
-                        return false;  // Unknown operator, do not show item
+                    // Split the valueToCompare string into an array of values and trim each one
+                    string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
+
+                    // Perform comparison based on the operator
+                    bool conditionMet;
+                    switch (comparisonOperator)
+                    {
+                        case "==":
+                            conditionMet = valuesToCompare.Any(v => v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                            break;
+                        case "!=":
+                            conditionMet = valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                            break;
+                        // Add more cases for other operators as needed
+                        default:
+                            Debug.LogErrorFormat("Unknown comparison operator '{0}'.", comparisonOperator);
+                            return false; // Unknown operator, do not show item
+                    }
+
+                    // If any condition is not met, do not show the item
+                    if (!conditionMet)
+                        return false;
+                }
+                else
+                {
+                    Debug.LogFormat("Variable {0} not found in filterVariables, not showing item.", variableName);
+                    return false; // If variable is not found, do not show the item
                 }
             }
 
-            // If the variable is not found in filterVariables, do not show the item
-            return false;
+            // If all conditions are met (or there are no conditions specified), show the item
+            return true;
         }
 
         public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
@@ -1089,6 +1088,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         dialogueItem.DialogueData.Add("C1_Variable", values[4]);
                         dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
                         dialogueItem.DialogueData.Add("C1_Value", values[6]);
+                        dialogueItem.DialogueData.Add("C2_Variable", values[7]);
+                        dialogueItem.DialogueData.Add("C2_Comparison", values[8]);
+                        dialogueItem.DialogueData.Add("C2_Value", values[9]);
+                        dialogueItem.DialogueData.Add("C3_Variable", values[10]);
+                        dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
+                        dialogueItem.DialogueData.Add("C3_Value", values[12]);
 
                         dialogueListItems.Add(dialogueItem);
                         lineNumber++;
