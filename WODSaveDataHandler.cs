@@ -24,7 +24,7 @@ public class WODSaveDataHandler : IHasModSaveData
     {
         return new WODTalkWindow.WODTalkWindowSaveData
         {
-            knownCaptions = new List<string> { "carademono" }
+            knownCaptions = new List<string> { "any advice?" }
         };
     }
 

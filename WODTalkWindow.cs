@@ -50,7 +50,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         }
 
         // Static property for known captions
-        public static List<string> knownCaptions { get; set; } = new List<string> { "carademono" };
+        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?" };
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -304,7 +304,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             currentQuestion = "";
 
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
-            GetNPCData();
+            GetFilterData();
 
             UpdateNameNPC();
         }
@@ -1023,6 +1023,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
                         dialogueItem.DialogueData.Add("Answer", values[2]);
                         dialogueItem.DialogueData.Add("AddCaption", values[3]);
+                        dialogueItem.DialogueData.Add("C1_Variable", values[4]);
+                        dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
+                        dialogueItem.DialogueData.Add("C1_Value", values[6]);
 
                         dialogueListItems.Add(dialogueItem);
                         lineNumber++;
@@ -1464,8 +1467,60 @@ namespace DaggerfallWorkshop.Game.UserInterface
             inListboxTopicContentUpdate = false;
         }
 
-        public void GetNPCData()
+        public void GetFilterData()
         {
+            // Dictionary to hold filter variables
+            Dictionary<string, object> filterVariables = new Dictionary<string, object>();
+
+            // Get the instance of DaggerfallDateTime
+            DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+
+            // Store date and time information
+            filterVariables["Year"] = dateTime.Year;
+            filterVariables["Month"] = dateTime.Month;
+            filterVariables["MonthName"] = dateTime.MonthName;
+            filterVariables["Day"] = dateTime.DayOfMonth;
+            filterVariables["DayName"] = dateTime.DayName;
+            filterVariables["Season"] = dateTime.SeasonName;
+            filterVariables["IsDay"] = dateTime.IsDay;
+            filterVariables["IsNight"] = dateTime.IsNight;
+            filterVariables["Massar Lunar Phase"] = dateTime.MassarLunarPhase;
+            filterVariables["Secunda Lunar Phase"] = dateTime.SecundaLunarPhase;
+
+            // Get the instance of PlayerGPS from GameManager
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+
+            // Store Player GPS data
+            filterVariables["Current Map Pixel"] = playerGPS.CurrentMapPixel;
+            filterVariables["Current Climate Index"] = playerGPS.CurrentClimateIndex;
+            filterVariables["Current Politic Index"] = playerGPS.CurrentPoliticIndex;
+            filterVariables["Current Region Index"] = playerGPS.CurrentRegionIndex;
+            filterVariables["Current Location Index"] = playerGPS.CurrentLocationIndex;
+            filterVariables["Current Map ID"] = playerGPS.CurrentMapID;
+            filterVariables["Has Current Location"] = playerGPS.HasCurrentLocation;
+            filterVariables["Is Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
+            filterVariables["Current Region"] = playerGPS.CurrentRegion;
+            filterVariables["Current Region Name"] = playerGPS.CurrentRegionName;
+            filterVariables["Current Localized Region Name"] = playerGPS.CurrentLocalizedRegionName;
+            filterVariables["Current Localized Location Name"] = playerGPS.CurrentLocalizedLocationName;
+            filterVariables["Current Climate Settings"] = playerGPS.ClimateSettings;
+            filterVariables["Current Location"] = playerGPS.CurrentLocation;
+            filterVariables["Current Location Type"] = playerGPS.CurrentLocationType;
+            filterVariables["Location Rect"] = playerGPS.LocationRect;
+            filterVariables["Location Revealed By Map Item"] = playerGPS.LocationRevealedByMapItem;
+
+            // Utility Methods of PlayerGPS
+            filterVariables["Name Bank of Current Region"] = playerGPS.GetNameBankOfCurrentRegion();
+            filterVariables["Race of Current Region"] = playerGPS.GetRaceOfCurrentRegion();
+            filterVariables["People of Current Region (Faction ID)"] = playerGPS.GetPeopleOfCurrentRegion();
+            filterVariables["Current Region Faction (Faction ID)"] = playerGPS.GetCurrentRegionFaction();
+            filterVariables["Court of Current Region (Faction ID)"] = playerGPS.GetCourtOfCurrentRegion();
+            filterVariables["Current Region Vampire Clan (Faction ID)"] = playerGPS.GetCurrentRegionVampireClan();
+            filterVariables["Dominant Temple in Current Region (Faction ID)"] = playerGPS.GetTempleOfCurrentRegion();
+            filterVariables["Is Player In Town"] = playerGPS.IsPlayerInTown();
+            filterVariables["Is Player In Town (Inside Location Rect)"] = playerGPS.IsPlayerInTown(true);
+            filterVariables["Is Player In Town (Inside Location Rect, Outside Buildings)"] = playerGPS.IsPlayerInTown(true, true);
+
             Debug.Log("Checking NPC Type...");
             if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
             {
@@ -1474,43 +1529,42 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 if (staticNpc != null)
                 {
                     StaticNPC.NPCData npcData = staticNpc.Data;
-                    FactionFile.FactionData factionData;
                     PersistentFactionData persistentFactionData = GameManager.Instance.PlayerEntity.FactionData;
+                    FactionFile.FactionData factionData;
 
-                    // Print all relevant NPC data in the debug log
-                    Debug.LogFormat("NPC Hash: {0}", npcData.hash);
-                    Debug.LogFormat("NPC Flags: {0}", npcData.flags);
-                    Debug.LogFormat("NPC Faction ID: {0}", npcData.factionID);
-                    Debug.LogFormat("NPC Name Seed: {0}", npcData.nameSeed);
-                    Debug.LogFormat("NPC Gender: {0}", npcData.gender);
-                    Debug.LogFormat("NPC Race: {0}", npcData.race);
-                    Debug.LogFormat("NPC Context: {0}", npcData.context);
-                    Debug.LogFormat("NPC Map ID: {0}", npcData.mapID);
-                    Debug.LogFormat("NPC Location ID: {0}", npcData.locationID);
-                    Debug.LogFormat("NPC Building Key: {0}", npcData.buildingKey);
-                    Debug.LogFormat("NPC Name Bank: {0}", npcData.nameBank);
-                    Debug.LogFormat("NPC Billboard Archive Index: {0}", npcData.billboardArchiveIndex);
-                    Debug.LogFormat("NPC Billboard Record Index: {0}", npcData.billboardRecordIndex);
-                    Debug.LogFormat("NPC Display Name: {0}", staticNpc.DisplayName);
-                    Debug.LogFormat("Is Child NPC: {0}", staticNpc.IsChildNPC);
+                    // Store static NPC data
+                    filterVariables["NPC Type"] = "Static";
+                    filterVariables["NPC Hash"] = npcData.hash;
+                    filterVariables["NPC Flags"] = npcData.flags;
+                    filterVariables["NPC Faction ID"] = npcData.factionID;
+                    filterVariables["NPC Name Seed"] = npcData.nameSeed;
+                    filterVariables["NPC Gender"] = npcData.gender;
+                    filterVariables["NPC Race"] = npcData.race;
+                    filterVariables["NPC Context"] = npcData.context;
+                    filterVariables["NPC Map ID"] = npcData.mapID;
+                    filterVariables["NPC Location ID"] = npcData.locationID;
+                    filterVariables["NPC Building Key"] = npcData.buildingKey;
+                    filterVariables["NPC Name Bank"] = npcData.nameBank;
+                    filterVariables["NPC Billboard Archive Index"] = npcData.billboardArchiveIndex;
+                    filterVariables["NPC Billboard Record Index"] = npcData.billboardRecordIndex;
+                    filterVariables["NPC Display Name"] = staticNpc.DisplayName;
+                    filterVariables["Is Child NPC"] = staticNpc.IsChildNPC;
 
-
-                    // Retrieve and print NPC Faction Details
+                    // Store faction details if available
                     if (persistentFactionData.GetFactionData(npcData.factionID, out factionData))
                     {
-                        // Print Faction Information
-                        Debug.LogFormat("Faction Name: {0}", factionData.name);
-                        Debug.LogFormat("Faction Parent: {0}", factionData.parent);
-                        Debug.LogFormat("Faction Type: {0}", factionData.type);
-                        Debug.LogFormat("Faction Reputation: {0}", factionData.rep);
-                        Debug.LogFormat("Faction Region: {0}", factionData.region);
-                        Debug.LogFormat("Faction Power: {0}", factionData.power);
-                        Debug.LogFormat("Faction Allies: {0}, {1}, {2}", factionData.ally1, factionData.ally2, factionData.ally3);
-                        Debug.LogFormat("Faction Enemies: {0}, {1}, {2}", factionData.enemy1, factionData.enemy2, factionData.enemy3);
-                        Debug.LogFormat("Faction Social Group: {0}", factionData.sgroup);
-                        Debug.LogFormat("Faction Guild Group: {0}", factionData.ggroup);
-                        Debug.LogFormat("Faction Vampire: {0}", factionData.vam);
-                        Debug.LogFormat("Faction Children: {0}", string.Join(", ", factionData.children));
+                        filterVariables["Faction Name"] = factionData.name;
+                        filterVariables["Faction Parent"] = factionData.parent;
+                        filterVariables["Faction Type"] = factionData.type;
+                        filterVariables["Faction Reputation"] = factionData.rep;
+                        filterVariables["Faction Region"] = factionData.region;
+                        filterVariables["Faction Power"] = factionData.power;
+                        filterVariables["Faction Allies"] = new int[] { factionData.ally1, factionData.ally2, factionData.ally3 };
+                        filterVariables["Faction Enemies"] = new int[] { factionData.enemy1, factionData.enemy2, factionData.enemy3 };
+                        filterVariables["Faction Social Group"] = factionData.sgroup;
+                        filterVariables["Faction Guild Group"] = factionData.ggroup;
+                        filterVariables["Faction Vampire"] = factionData.vam;
+                        filterVariables["Faction Children"] = factionData.children;
                     }
                 }
             }
@@ -1520,11 +1574,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 MobilePersonNPC mobileNpc = TalkManager.Instance.MobileNPC;
                 if (mobileNpc != null)
                 {
-                    // Print all relevant Mobile NPC data in the debug log
-                    Debug.LogFormat("Mobile NPC Race: {0}", mobileNpc.Race);
-                    Debug.LogFormat("Mobile NPC Gender: {0}", mobileNpc.Gender);
-                    Debug.LogFormat("Mobile NPC Outfit Variant: {0}", mobileNpc.PersonOutfitVariant);
-                    Debug.LogFormat("Mobile NPC Is Guard: {0}", mobileNpc.IsGuard);
+                    // Store mobile NPC data
+                    filterVariables["NPC Type"] = "Mobile";
+                    filterVariables["NPC Race"] = mobileNpc.Race;
+                    filterVariables["NPC Gender"] = mobileNpc.Gender;
+                    filterVariables["Is Guard"] = mobileNpc.IsGuard;
+                    filterVariables["NPC Outfit Variant"] = mobileNpc.PersonOutfitVariant;
                 }
             }
             else
@@ -1532,37 +1587,32 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 Debug.Log("No NPC or Unknown NPC Type");
             }
 
-            // Print Player GPS data
-            Debug.Log("Retrieving Player GPS Data...");
-            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
-            Debug.LogFormat("Current Map Pixel: {0}", playerGPS.CurrentMapPixel);
-            Debug.LogFormat("Current Climate Index: {0}", playerGPS.CurrentClimateIndex);
-            Debug.LogFormat("Current Politic Index: {0}", playerGPS.CurrentPoliticIndex);
-            Debug.LogFormat("Current Region Index: {0}", playerGPS.CurrentRegionIndex);
-            Debug.LogFormat("Current Location Index: {0}", playerGPS.CurrentLocationIndex);
-            Debug.LogFormat("Current Map ID: {0}", playerGPS.CurrentMapID);
-            Debug.LogFormat("Has Current Location: {0}", playerGPS.HasCurrentLocation);
-            Debug.LogFormat("Is Player In Location Rect: {0}", playerGPS.IsPlayerInLocationRect);
-            Debug.LogFormat("Current Region: {0}", playerGPS.CurrentRegion);
-            Debug.LogFormat("Current Region Name: {0}", playerGPS.CurrentRegionName);
-            Debug.LogFormat("Current Localized Region Name: {0}", playerGPS.CurrentLocalizedRegionName);
-            Debug.LogFormat("Current Localized Location Name: {0}", playerGPS.CurrentLocalizedLocationName);
-            Debug.LogFormat("Current Climate Settings: {0}", playerGPS.ClimateSettings);
-            Debug.LogFormat("Current Location: {0}", playerGPS.CurrentLocation);
-            Debug.LogFormat("Current Location Type: {0}", playerGPS.CurrentLocationType);
-            Debug.LogFormat("Location Rect: {0}", playerGPS.LocationRect);
-            Debug.LogFormat("Location Revealed By Map Item: {0}", playerGPS.LocationRevealedByMapItem);
-            // Utility Methods of PlayerGPS
-            Debug.LogFormat("Name Bank of Current Region: {0}", playerGPS.GetNameBankOfCurrentRegion());
-            Debug.LogFormat("Race of Current Region: {0}", playerGPS.GetRaceOfCurrentRegion());
-            Debug.LogFormat("People of Current Region (Faction ID): {0}", playerGPS.GetPeopleOfCurrentRegion());
-            Debug.LogFormat("Current Region Faction (Faction ID): {0}", playerGPS.GetCurrentRegionFaction());
-            Debug.LogFormat("Court of Current Region (Faction ID): {0}", playerGPS.GetCourtOfCurrentRegion());
-            Debug.LogFormat("Current Region Vampire Clan (Faction ID): {0}", playerGPS.GetCurrentRegionVampireClan());
-            Debug.LogFormat("Dominant Temple in Current Region (Faction ID): {0}", playerGPS.GetTempleOfCurrentRegion());
-            Debug.LogFormat("Is Player In Town: {0}", playerGPS.IsPlayerInTown());
-            Debug.LogFormat("Is Player In Town (Inside Location Rect): {0}", playerGPS.IsPlayerInTown(true));
-            Debug.LogFormat("Is Player In Town (Inside Location Rect, Outside Buildings): {0}", playerGPS.IsPlayerInTown(true, true));
+            // Calculate holiday ID and store holiday name
+            const int holidaysStartID = 8349;
+            uint minutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
+            int holidayId = Formulas.FormulaHelper.GetHolidayId(minutes, GameManager.Instance.PlayerGPS.CurrentRegionIndex);
+            if (holidayId != 0)
+            {
+                TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(holidaysStartID + holidayId);
+                if (tokens != null && tokens.Length > 0)
+                {
+                    filterVariables["Current Holiday"] = tokens[0].text;
+                }
+                else
+                {
+                    filterVariables["Current Holiday"] = "Failed to retrieve holiday name.";
+                }
+            }
+            else
+            {
+                filterVariables["Current Holiday"] = "No holiday today.";
+            }
+
+            // Log all filterVariables
+            foreach (var item in filterVariables)
+            {
+                Debug.LogFormat("{0}: {1}", item.Key, item.Value);
+            }
         }
 
         #region event handlers
