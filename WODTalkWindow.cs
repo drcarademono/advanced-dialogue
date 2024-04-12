@@ -52,6 +52,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         // Static property for known captions
         public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?" };
 
+        public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
+
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
         protected const string highlightedOptionsImgName = "TALK03I0.IMG";
@@ -981,8 +983,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Remove all items with QuestionType.OrganizationInfo (ie, Factions questions)
             baseTopics.RemoveAll(dialogueItem => dialogueItem.ListItem.questionType == TalkManager.QuestionType.OrganizationInfo);
 
-            // Filter dialogueListItems by allowed captions
-            var knownDialogueItems = dialogueListItems.Where(item => knownCaptions.Contains(item.ListItem.caption.ToLower())).ToList();
+            // Filter dialogueListItems by allowed captions and custom conditions
+            var knownDialogueItems = dialogueListItems
+                .Where(item => knownCaptions.Contains(item.ListItem.caption.ToLower()) && EvaluateConditions(item))
+                .ToList();
 
             // Sort the filtered list by caption alphabetically (case-insensitive)
             knownDialogueItems.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
@@ -996,6 +1000,55 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             UpdateScrollBarsTopic();
             UpdateScrollButtonsTopic();
+        }
+
+        private bool EvaluateConditions(DialogueListItem item)
+        {
+            // Check if the condition fields are present
+            if (!item.DialogueData.ContainsKey("C1_Variable") || !item.DialogueData.ContainsKey("C1_Comparison") || !item.DialogueData.ContainsKey("C1_Value"))
+            {
+                Debug.Log("Condition fields missing, showing item by default.");
+                return true;  // If any condition field is missing, show the item by default
+            }
+
+            string variableName = item.DialogueData["C1_Variable"] as string;
+            string comparisonOperator = item.DialogueData["C1_Comparison"] as string;
+            string valueToCompare = item.DialogueData["C1_Value"] as string;
+
+            // If the fields are present but empty, show the item
+            if (string.IsNullOrWhiteSpace(variableName) || string.IsNullOrWhiteSpace(comparisonOperator) || string.IsNullOrWhiteSpace(valueToCompare))
+            {
+                Debug.Log("Condition fields are empty, showing item by default.");
+                return true;
+            }
+
+            // Check if the variable exists in the filterVariables dictionary
+            if (!filterVariables.TryGetValue(variableName, out object variableValue))
+            {
+                Debug.LogFormat("Variable {0} not found in filterVariables, not showing item.", variableName);
+                return false; // If variable is not found, do not show the item
+            }
+
+            // Output current values for debugging
+            Debug.LogFormat("Comparing {0} {1} {2} (variable value is {3})", variableName, comparisonOperator, valueToCompare, variableValue);
+
+            // Perform comparison based on the operator
+            bool comparisonResult = false;
+            switch (comparisonOperator)
+            {
+                case "==":
+                    comparisonResult = variableValue.ToString().Equals(valueToCompare);
+                    break;
+                case "!=":
+                    comparisonResult = !variableValue.ToString().Equals(valueToCompare);
+                    break;
+                // Extend cases for other operators as needed
+                default:
+                    Debug.Log("Unknown comparison operator.");
+                    break;
+            }
+
+            return comparisonResult;
         }
 
         public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
@@ -1469,8 +1522,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public void GetFilterData()
         {
-            // Dictionary to hold filter variables
-            Dictionary<string, object> filterVariables = new Dictionary<string, object>();
+            filterVariables.Clear(); // Clear the existing dictionary before populating
 
             // Get the instance of DaggerfallDateTime
             DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;

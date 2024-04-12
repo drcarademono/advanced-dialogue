@@ -1,6 +1,6 @@
-type	caption	answer	add_caption	c1_variable	c1_logical	c1_condition	key	factionID	questionType	npcKnowledgeAboutItem	buildingKey	npcInSameBuildingAsTopic	questID	index
+type	caption	answer	add_caption	c1_variable	c1_comp	c1_condition	key	factionID	questionType	npcKnowledgeAboutItem	buildingKey	npcInSameBuildingAsTopic	questID	index
 	Any advice?	You look new here in Glenpoint so let me offer you some free advice. You wanna get ahead? Fools who run their mouths off wind up dead.	Region|Local Ruler|Local Faction #1|Local Faction #1|Local Faction #2|Local God|Local Culture #1|Local Culture #2											
-	Region	A modder with a heart of gold and the face of a monkey. Works for the World of Daggerfall modding team.												
+	Region	Welcome to Glenpoint, the ONLY REGION where you should see this dialogue option!		Current Region Name	==	Glenpoint								
 	Local Ruler	The head honcho with mad coding skills.												
 	Local Faction #1	An incomparable mad lad.												
 	Local Faction #2	The Iliac Bay’s finest interior decorator.												
