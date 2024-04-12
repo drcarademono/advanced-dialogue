@@ -1022,33 +1022,43 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return true;
             }
 
-            // Check if the variable exists in the filterVariables dictionary
-            if (!filterVariables.TryGetValue(variableName, out object variableValue))
+            // Access the corresponding variable from filterVariables
+            if (filterVariables.TryGetValue(variableName, out object variableValue))
             {
-                Debug.LogFormat("Variable {0} not found in filterVariables, not showing item.", variableName);
-                return false; // If variable is not found, do not show the item
+                // Split the valueToCompare string into an array of values
+                string[] valuesToCompare = valueToCompare.Split('|');
+
+                // Perform comparison based on the operator
+                switch (comparisonOperator)
+                {
+                    case "==":
+                        // Check if the variableValue matches any value in the valuesToCompare array
+                        foreach (string value in valuesToCompare)
+                        {
+                            if (variableValue.ToString().Equals(value.Trim(), StringComparison.OrdinalIgnoreCase))
+                                return true;
+                        }
+                        break;
+                    case "!=":
+                        // Check if the variableValue does not match all values in the valuesToCompare array
+                        bool allNotEqual = true;
+                        foreach (string value in valuesToCompare)
+                        {
+                            if (variableValue.ToString().Equals(value.Trim(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                allNotEqual = false;
+                                break;
+                            }
+                        }
+                        return allNotEqual;
+                    // Add more cases for other operators as needed
+                    default:
+                        return false;  // Unknown operator, do not show item
+                }
             }
 
-            // Output current values for debugging
-            Debug.LogFormat("Comparing {0} {1} {2} (variable value is {3})", variableName, comparisonOperator, valueToCompare, variableValue);
-
-            // Perform comparison based on the operator
-            bool comparisonResult = false;
-            switch (comparisonOperator)
-            {
-                case "==":
-                    comparisonResult = variableValue.ToString().Equals(valueToCompare);
-                    break;
-                case "!=":
-                    comparisonResult = !variableValue.ToString().Equals(valueToCompare);
-                    break;
-                // Extend cases for other operators as needed
-                default:
-                    Debug.Log("Unknown comparison operator.");
-                    break;
-            }
-
-            return comparisonResult;
+            // If the variable is not found in filterVariables, do not show the item
+            return false;
         }
 
         public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
