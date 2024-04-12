@@ -43,7 +43,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
         }
 
-        private List<string> knownCaptions = new List<string> { "carademono" };
+        [Serializable]
+        public class WODTalkWindowSaveData
+        {
+            public List<string> knownCaptions = new List<string>();
+        }
+
+        // Static property for known captions
+        public static List<string> knownCaptions { get; set; } = new List<string> { "carademono" };
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";

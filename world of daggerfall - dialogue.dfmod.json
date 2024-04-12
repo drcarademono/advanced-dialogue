@@ -9,6 +9,7 @@
     "Files": [
         "Assets/Game/Mods/wod-dialogue/Dialogue/Dialogue.csv",
         "Assets/Game/Mods/wod-dialogue/WODDialogue.cs",
-        "Assets/Game/Mods/wod-dialogue/WODTalkWindow.cs"
+        "Assets/Game/Mods/wod-dialogue/WODTalkWindow.cs",
+        "Assets/Game/Mods/wod-dialogue/WODSaveDataHandler.cs"
     ]
 }
