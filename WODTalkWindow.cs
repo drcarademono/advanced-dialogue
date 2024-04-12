@@ -43,6 +43,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
         }
 
+        private List<string> knownCaptions = new List<string> { "carademono" };
+
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
         protected const string highlightedOptionsImgName = "TALK03I0.IMG";
@@ -960,6 +962,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
             buttonCategoryThings.BackgroundTexture = textureCategoryThingGrayedOut;
             buttonCategoryWork.BackgroundTexture = textureCategoryWorkGrayedOut;
 
+            UpdateTellMeAboutTopics();  // Call the refactored method to set topics
+        }
+
+        protected virtual void UpdateTellMeAboutTopics()
+        {
             // Create a new list to hold the merged topics
             List<DialogueListItem> baseTopics = TalkManager.Instance.ListTopicTellMeAbout
                 .Select(item => new DialogueListItem(item)).ToList();
@@ -967,11 +974,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Remove all items with QuestionType.OrganizationInfo (ie, Factions questions)
             baseTopics.RemoveAll(dialogueItem => dialogueItem.ListItem.questionType == TalkManager.QuestionType.OrganizationInfo);
 
-            // Sort the list by caption alphabetically (case-insensitive)
-            dialogueListItems.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
+            // Filter dialogueListItems by allowed captions
+            var knownDialogueItems = dialogueListItems.Where(item => knownCaptions.Contains(item.ListItem.caption.ToLower())).ToList();
+
+            // Sort the filtered list by caption alphabetically (case-insensitive)
+            knownDialogueItems.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
 
             // Add all custom topics from dialogueListItems to the filtered list
-            baseTopics.AddRange(dialogueListItems);
+            baseTopics.AddRange(knownDialogueItems);
 
             // Use the filtered list to set the topics in your list box
             SetListboxTopics(ref listboxTopic, baseTopics.Select(di => di.ListItem).ToList());
@@ -979,8 +989,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             UpdateScrollBarsTopic();
             UpdateScrollButtonsTopic();
-
-            UpdateQuestion(listboxTopic.SelectedIndex);
         }
 
         public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
@@ -1007,6 +1015,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         DialogueListItem dialogueItem = new DialogueListItem(item);
                         dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
                         dialogueItem.DialogueData.Add("Answer", values[2]);
+                        dialogueItem.DialogueData.Add("AddCaption", values[3]);
 
                         dialogueListItems.Add(dialogueItem);
                         lineNumber++;
@@ -1389,7 +1398,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
             else if (listItem.type == TalkManager.ListItemType.Item)
             {
                 string answer;
-                // Check if listItem's index is equal to or greater than 1000 to decide from where to get the answer
                 if (listItem.questionType == TalkManager.QuestionType.News) 
                 {
                 answer = TalkManager.Instance.GetNewsOrRumors(); // CdM: This is where we'll call a method that mixes quest rumors / etc with better news from our CSVs.
@@ -1401,6 +1409,33 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     {
                         // Fetch the answer from the DialogueData
                         answer = dialogueItem.DialogueData["Answer"] as string;
+
+                        // Check for AddCaption and add it to knownCaptions if present
+                        if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
+                        {
+                            string addCaption = dialogueItem.DialogueData["AddCaption"] as string;
+                            if (!string.IsNullOrEmpty(addCaption))
+                            {
+                                // Split the AddCaption string into individual captions
+                                string[] captionsToAdd = addCaption.Split('|');
+                                bool updated = false;
+                                foreach (var caption in captionsToAdd)
+                                {
+                                    string trimmedCaption = caption.Trim().ToLower();  // Trim and convert to lower case
+                                    if (!knownCaptions.Contains(trimmedCaption))
+                                    {
+                                        knownCaptions.Add(trimmedCaption);
+                                        updated = true;
+                                    }
+                                }
+                                
+                                // Only update the topics if at least one new caption was added
+                                if (updated)
+                                {
+                                    UpdateTellMeAboutTopics();
+                                }
+                            }
+                        }
                     }
                     else
                     {
@@ -1482,6 +1517,38 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 Debug.Log("No NPC or Unknown NPC Type");
             }
+
+            // Print Player GPS data
+            Debug.Log("Retrieving Player GPS Data...");
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            Debug.LogFormat("Current Map Pixel: {0}", playerGPS.CurrentMapPixel);
+            Debug.LogFormat("Current Climate Index: {0}", playerGPS.CurrentClimateIndex);
+            Debug.LogFormat("Current Politic Index: {0}", playerGPS.CurrentPoliticIndex);
+            Debug.LogFormat("Current Region Index: {0}", playerGPS.CurrentRegionIndex);
+            Debug.LogFormat("Current Location Index: {0}", playerGPS.CurrentLocationIndex);
+            Debug.LogFormat("Current Map ID: {0}", playerGPS.CurrentMapID);
+            Debug.LogFormat("Has Current Location: {0}", playerGPS.HasCurrentLocation);
+            Debug.LogFormat("Is Player In Location Rect: {0}", playerGPS.IsPlayerInLocationRect);
+            Debug.LogFormat("Current Region: {0}", playerGPS.CurrentRegion);
+            Debug.LogFormat("Current Region Name: {0}", playerGPS.CurrentRegionName);
+            Debug.LogFormat("Current Localized Region Name: {0}", playerGPS.CurrentLocalizedRegionName);
+            Debug.LogFormat("Current Localized Location Name: {0}", playerGPS.CurrentLocalizedLocationName);
+            Debug.LogFormat("Current Climate Settings: {0}", playerGPS.ClimateSettings);
+            Debug.LogFormat("Current Location: {0}", playerGPS.CurrentLocation);
+            Debug.LogFormat("Current Location Type: {0}", playerGPS.CurrentLocationType);
+            Debug.LogFormat("Location Rect: {0}", playerGPS.LocationRect);
+            Debug.LogFormat("Location Revealed By Map Item: {0}", playerGPS.LocationRevealedByMapItem);
+            // Utility Methods of PlayerGPS
+            Debug.LogFormat("Name Bank of Current Region: {0}", playerGPS.GetNameBankOfCurrentRegion());
+            Debug.LogFormat("Race of Current Region: {0}", playerGPS.GetRaceOfCurrentRegion());
+            Debug.LogFormat("People of Current Region (Faction ID): {0}", playerGPS.GetPeopleOfCurrentRegion());
+            Debug.LogFormat("Current Region Faction (Faction ID): {0}", playerGPS.GetCurrentRegionFaction());
+            Debug.LogFormat("Court of Current Region (Faction ID): {0}", playerGPS.GetCourtOfCurrentRegion());
+            Debug.LogFormat("Current Region Vampire Clan (Faction ID): {0}", playerGPS.GetCurrentRegionVampireClan());
+            Debug.LogFormat("Dominant Temple in Current Region (Faction ID): {0}", playerGPS.GetTempleOfCurrentRegion());
+            Debug.LogFormat("Is Player In Town: {0}", playerGPS.IsPlayerInTown());
+            Debug.LogFormat("Is Player In Town (Inside Location Rect): {0}", playerGPS.IsPlayerInTown(true));
+            Debug.LogFormat("Is Player In Town (Inside Location Rect, Outside Buildings): {0}", playerGPS.IsPlayerInTown(true, true));
         }
 
         #region event handlers
