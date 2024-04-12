@@ -1382,6 +1382,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return;
             }
 
+            string currentCaption = listCurrentTopics[index].caption;
             listboxTopic.SelectedIndex = index;
             TalkManager.ListItem listItem = listCurrentTopics[index];
             if (listItem.type == TalkManager.ListItemType.NavigationBack)
@@ -1405,6 +1406,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             else if (listItem.type == TalkManager.ListItemType.Item)
             {
                 string answer;
+                bool topicsUpdated = false;
                 if (listItem.questionType == TalkManager.QuestionType.News) 
                 {
                 answer = TalkManager.Instance.GetNewsOrRumors(); // CdM: This is where we'll call a method that mixes quest rumors / etc with better news from our CSVs.
@@ -1432,14 +1434,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                     if (!knownCaptions.Contains(trimmedCaption))
                                     {
                                         knownCaptions.Add(trimmedCaption);
-                                        updated = true;
+                                        topicsUpdated = true;
                                     }
-                                }
-                                
-                                // Only update the topics if at least one new caption was added
-                                if (updated)
-                                {
-                                    UpdateTellMeAboutTopics();
                                 }
                             }
                         }
@@ -1452,7 +1448,18 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
                 SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
 
-                UpdateQuestion(listboxTopic.SelectedIndex); // and get new question text for textlabel
+                if (topicsUpdated) // Only update the topics if at least one new caption was added
+                {
+                    UpdateTellMeAboutTopics();
+                }
+
+                // Restore the selection based on ListItem's caption
+                int newIndex = listCurrentTopics.FindIndex(x => x.caption == currentCaption);
+                if (newIndex != -1)
+                {
+                    listboxTopic.SelectedIndex = newIndex;
+                }
+                UpdateQuestion(newIndex);
             }
             inListboxTopicContentUpdate = false;
         }
