@@ -986,6 +986,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Filter dialogueListItems by allowed captions and custom conditions
             var knownDialogueItems = dialogueListItems
                 .Where(item => knownCaptions.Contains(item.ListItem.caption.ToLower()) && EvaluateConditions(item))
+                .GroupBy(item => item.ListItem.caption.ToLower())
+                .Select(group => group.First()) // Selects only the first item from each group
                 .ToList();
 
             // Sort the filtered list by caption alphabetically (case-insensitive)
@@ -1004,33 +1006,40 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         private bool EvaluateConditions(DialogueListItem item)
         {
-            // Check if the condition fields are present for C1, C2, and C3. If not, show the item by default.
-            // It's assumed that a condition must be fully specified (i.e., all its fields are present) to be considered.
+            // Loop through each condition set (C1, C2, C3)
             for (int i = 1; i <= 3; i++)
             {
+                // Construct the keys for the current condition set
                 string cVariable = $"C{i}_Variable";
                 string cComparison = $"C{i}_Comparison";
                 string cValue = $"C{i}_Value";
 
-                // If any of the condition fields are missing or empty, the condition is not considered.
-                if (!item.DialogueData.ContainsKey(cVariable) || !item.DialogueData.ContainsKey(cComparison) || !item.DialogueData.ContainsKey(cValue))
+                // If any of the condition keys don't exist or are empty, skip this condition set
+                if (!item.DialogueData.ContainsKey(cVariable) ||
+                    !item.DialogueData.ContainsKey(cComparison) ||
+                    !item.DialogueData.ContainsKey(cValue) ||
+                    string.IsNullOrWhiteSpace(item.DialogueData[cVariable] as string) ||
+                    string.IsNullOrWhiteSpace(item.DialogueData[cComparison] as string) ||
+                    string.IsNullOrWhiteSpace(item.DialogueData[cValue] as string))
+                {
                     continue;
+                }
 
+                // Retrieve values from dialogue data
                 string variableName = item.DialogueData[cVariable] as string;
                 string comparisonOperator = item.DialogueData[cComparison] as string;
                 string valueToCompare = item.DialogueData[cValue] as string;
 
-                if (string.IsNullOrWhiteSpace(variableName) || string.IsNullOrWhiteSpace(comparisonOperator) || string.IsNullOrWhiteSpace(valueToCompare))
-                    continue;
-
-                // Check if the variable exists in the filterVariables dictionary
+                // If the filterVariables dictionary contains the variable, perform comparison
                 if (filterVariables.TryGetValue(variableName, out object variableValue))
                 {
-                    // Split the valueToCompare string into an array of values and trim each one
+                    // Split valueToCompare into an array and trim each entry
                     string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
+                    
+                    // Assume the condition is not met until proven otherwise
+                    bool conditionMet = false;
 
                     // Perform comparison based on the operator
-                    bool conditionMet;
                     switch (comparisonOperator)
                     {
                         case "==":
@@ -1039,25 +1048,59 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         case "!=":
                             conditionMet = valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
                             break;
-                        // Add more cases for other operators as needed
+                        case "<":
+                        case ">":
+                        case "<=":
+                        case ">=":
+                            // Ensure both variableValue and valueToCompare are integers for numeric comparisons
+                            if (int.TryParse(variableValue.ToString(), out int intVariableValue) &&
+                                valuesToCompare.All(v => int.TryParse(v, out int intValue)))
+                            {
+                                conditionMet = valuesToCompare.All(v => EvaluateNumericComparison(intVariableValue, int.Parse(v), comparisonOperator));
+                            }
+                            else
+                            {
+                                Debug.LogError($"Cannot perform numeric comparison on non-integer variable '{variableName}' or value '{valueToCompare}'.");
+                                return false;
+                            }
+                            break;
                         default:
-                            Debug.LogErrorFormat("Unknown comparison operator '{0}'.", comparisonOperator);
+                            Debug.LogError($"Unknown comparison operator '{comparisonOperator}'.");
                             return false; // Unknown operator, do not show item
                     }
 
-                    // If any condition is not met, do not show the item
+                    // If the condition has not been met, do not show the item
                     if (!conditionMet)
                         return false;
                 }
                 else
                 {
-                    Debug.LogFormat("Variable {0} not found in filterVariables, not showing item.", variableName);
-                    return false; // If variable is not found, do not show the item
+                    // If the variable is not found in filterVariables, do not show the item
+                    Debug.LogError($"Variable '{variableName}' not found in filterVariables.");
+                    return false;
                 }
             }
 
-            // If all conditions are met (or there are no conditions specified), show the item
+            // If all conditions are met or skipped, show the item
             return true;
+        }
+
+        private bool EvaluateNumericComparison(int variableValue, int comparisonValue, string comparisonOperator)
+        {
+            // Perform comparison based on the operator
+            switch (comparisonOperator)
+            {
+                case "<":
+                    return variableValue < comparisonValue;
+                case ">":
+                    return variableValue > comparisonValue;
+                case "<=":
+                    return variableValue <= comparisonValue;
+                case ">=":
+                    return variableValue >= comparisonValue;
+                default:
+                    throw new ArgumentException($"Invalid comparison operator: {comparisonOperator}");
+            }
         }
 
         public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
