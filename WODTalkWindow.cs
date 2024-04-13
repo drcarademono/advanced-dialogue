@@ -1531,7 +1531,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     if (dialogueItem != null)
                     {
                         // Fetch the answer from the DialogueData
-                        answer = dialogueItem.DialogueData["Answer"] as string;
+                        string answerData = dialogueItem.DialogueData["Answer"] as string;
+
+                        // Split the answer into possible responses if it contains '|'
+                        string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                        answer = possibleAnswers[UnityEngine.Random.Range(0, possibleAnswers.Length)].Trim();
 
                         // Check for AddCaption and add it to knownCaptions if present
                         if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
@@ -1541,7 +1545,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             {
                                 // Split the AddCaption string into individual captions
                                 string[] captionsToAdd = addCaption.Split('|');
-                                bool updated = false;
                                 foreach (var caption in captionsToAdd)
                                 {
                                     string trimmedCaption = caption.Trim().ToLower();  // Trim and convert to lower case
