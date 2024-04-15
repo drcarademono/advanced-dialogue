@@ -310,6 +310,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             GetFilterData();
 
             UpdateNameNPC();
+            SetTalkModeTellMeAbout();
         }
 
         public override void OnPop()
@@ -644,6 +645,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             SetupScrollButtons();                                   
 
             SetTalkModeWhereIs();
+            SetTalkModeTellMeAbout();
 
             //UpdateButtonState();
             UpdateCheckboxes();
@@ -964,15 +966,36 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             talkCategoryLastUsed = TalkCategory.None;  // Important to enable category when switching back
 
-            // Update UI elements
-            buttonTellMeAbout.BackgroundTexture = textureTellMeAboutHighlighted;
-            buttonWhereIs.BackgroundTexture = textureWhereIsGrayedOut;
-            buttonCategoryLocation.BackgroundTexture = textureCategoryLocationGrayedOut;
-            buttonCategoryPerson.BackgroundTexture = textureCategoryPersonGrayedOut;
-            buttonCategoryThings.BackgroundTexture = textureCategoryThingGrayedOut;
-            buttonCategoryWork.BackgroundTexture = textureCategoryWorkGrayedOut;
+            // Update UI elements. Null checks required because (I think) we inherit from DaggerfallTalkWindow instead of DaggerfallPopupWindow
+            if (buttonTellMeAbout == null) {}
+            else
+                buttonTellMeAbout.BackgroundTexture = textureTellMeAboutHighlighted;
 
-            UpdateTellMeAboutTopics();  // Call the refactored method to set topics
+            if (buttonWhereIs == null) {}
+            else
+                buttonWhereIs.BackgroundTexture = textureWhereIsGrayedOut;
+
+            if (buttonCategoryLocation == null) {}
+            else
+                buttonCategoryLocation.BackgroundTexture = textureCategoryLocationGrayedOut;
+
+            if (buttonCategoryPerson == null) {}
+            else
+                buttonCategoryPerson.BackgroundTexture = textureCategoryPersonGrayedOut;
+
+            if (buttonCategoryThings == null) {}
+            else
+                buttonCategoryThings.BackgroundTexture = textureCategoryThingGrayedOut;
+
+            if (buttonCategoryWork == null) {}
+            else
+                buttonCategoryWork.BackgroundTexture = textureCategoryWorkGrayedOut;
+
+            // Ensuring that the UpdateTellMeAboutTopics method doesn't operate on null or uninitialized data
+            if (listboxTopic == null) {}
+
+            else
+                UpdateTellMeAboutTopics();  // Call the refactored method to set topics
         }
 
         protected virtual void UpdateTellMeAboutTopics()
