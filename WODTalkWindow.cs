@@ -1597,8 +1597,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 bool topicsUpdated = false;
                 if (listItem.questionType == TalkManager.QuestionType.News) 
                 {
-                answer = TalkManager.Instance.GetNewsOrRumors(); // CdM: This is where we'll call a method that mixes quest rumors / etc with better news from our CSVs.
-                } else
+                    answer = TalkManager.Instance.GetNewsOrRumors(); // Handle news or rumors
+                } 
+                else
                 {
                     // Check if this ListItem has a DialogueListItem wrapper
                     DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
@@ -1609,7 +1610,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
                         // Split the answer into possible responses if it contains '|'
                         string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-                        answer = possibleAnswers[UnityEngine.Random.Range(0, possibleAnswers.Length)].Trim();
+                        int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
+                        answer = possibleAnswers[selectedIndex].Trim();
 
                         // Check for AddCaption and add it to knownCaptions if present
                         if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
@@ -1617,15 +1619,22 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             string addCaption = dialogueItem.DialogueData["AddCaption"] as string;
                             if (!string.IsNullOrEmpty(addCaption))
                             {
-                                // Split the AddCaption string into individual captions
-                                string[] captionsToAdd = addCaption.Split('|');
-                                foreach (var caption in captionsToAdd)
+                                // Split the AddCaption string into individual lists corresponding to answers
+                                string[] captionLists = addCaption.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+
+                                // Ensure there are enough lists to match the selected answer
+                                if (captionLists.Length > selectedIndex)
                                 {
-                                    string trimmedCaption = caption.Trim().ToLower();  // Trim and convert to lower case
-                                    if (!knownCaptions.Contains(trimmedCaption))
+                                    string selectedCaptionList = captionLists[selectedIndex].Trim();
+                                    string[] captionsToAdd = selectedCaptionList.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                    foreach (var caption in captionsToAdd)
                                     {
-                                        knownCaptions.Add(trimmedCaption);
-                                        topicsUpdated = true;
+                                        string trimmedCaption = caption.Trim().ToLower();  // Trim and convert to lower case
+                                        if (!knownCaptions.Contains(trimmedCaption))
+                                        {
+                                            knownCaptions.Add(trimmedCaption);
+                                            topicsUpdated = true;
+                                        }
                                     }
                                 }
                             }

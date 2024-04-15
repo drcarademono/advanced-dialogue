@@ -1,5 +1,5 @@
 type	caption	answer	add_caption	c1_variable	c1_comp	c1_condition	c2_variable	c2_comp	c2_condition	c3_variable	c3_comp	c3_condition	key	factionID	questionType	npcKnowledgeAboutItem	buildingKey	npcInSameBuildingAsTopic	questID	index
-	Any advice?	You look new here in Glenpoint so let me offer you some free advice.|You wanna get ahead?|Fools who run their mouths off wind up dead.	Region|Local Ruler|Local Faction #1|Local Faction #1|Local Faction #2|Local God|Local Culture #1|Local Culture #2																	
+	Any advice?	You look new here in Glenpoint so let me offer you some free advice.|You wanna get ahead?|Fools who run their mouths off wind up dead.	Region,Local Ruler|Local Faction #1,Local Faction #2,Local God|Local Culture #1,Local Culture #2																	
 	Region	Welcome to %crn, the ONLY REGION where you should see this dialogue option!																		
 	Local Ruler	The head honcho with mad coding skills.																		
 	Local Faction #1	An incomparable mad lad.																		
