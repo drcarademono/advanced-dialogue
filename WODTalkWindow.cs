@@ -1891,15 +1891,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Store each item count in filterVariables
             foreach (var item in itemSummary)
             {
-                filterVariables["Item Count: " + item.Key] = item.Value;
+                filterVariables["Item: " + item.Key] = item.Value;
             }
 
             // Additional inventory metrics
-            filterVariables["Inventory Weight"] = inventory.GetWeight(); // total weight of items
+            //filterVariables["Inventory Weight"] = inventory.GetWeight(); // total weight of items
 
             // Query all active quests
             ulong[] activeQuests = QuestMachine.Instance.GetAllActiveQuests();
-            Dictionary<string, List<int>> questDetails = new Dictionary<string, List<int>>();
             foreach (ulong questUID in activeQuests)
             {
                 Quest quest = QuestMachine.Instance.GetQuest(questUID);
@@ -1913,17 +1912,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         if (!messageIDs.Contains(entry.messageID))
                             messageIDs.Add(entry.messageID);
                     }
-                    questDetails.Add(quest.QuestName, messageIDs);
+                    // Add each quest as a separate entry in filterVariables
+                    filterVariables["Quest: " + quest.QuestName] = string.Join(", ", messageIDs);
                 }
             }
-
-            // Store quest details in a more log-friendly format
-            StringBuilder questDetailsFormatted = new StringBuilder();
-            foreach (KeyValuePair<string, List<int>> detail in questDetails)
-            {
-                questDetailsFormatted.AppendLine(detail.Key + ": " + string.Join(", ", detail.Value));
-            }
-            filterVariables["Active Quests"] = questDetailsFormatted.ToString();
 
             // Log all filterVariables
             foreach (var item in filterVariables)
