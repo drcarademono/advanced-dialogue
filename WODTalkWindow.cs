@@ -990,11 +990,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 .Select(group => group.First()) // Selects only the first item from each group
                 .ToList();
 
-            // Sort the filtered list by caption alphabetically (case-insensitive)
-            knownDialogueItems.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
-
             // Add all custom topics from dialogueListItems to the filtered list
             baseTopics.AddRange(knownDialogueItems);
+
+            // Sort the filtered list by caption alphabetically (case-insensitive)
+            baseTopics.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
 
             // Use the filtered list to set the topics in your list box
             SetListboxTopics(ref listboxTopic, baseTopics.Select(di => di.ListItem).ToList());
@@ -1411,6 +1411,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             textlabelPlayerSays.Text = "";
         }
 
+        private bool isFirstAdviceRequest = true;
+
         protected virtual void UpdateQuestion(int index)
         {
             TalkManager.ListItem listItem;
@@ -1433,10 +1435,44 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
 
             if (listItem.type == TalkManager.ListItemType.Item)
-                currentQuestion = TalkManager.Instance.GetQuestionText(listItem, selectedTalkTone);
-            else
-                currentQuestion = "";
+            {
+                if (listItem.caption.Equals("Any advice?", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (isFirstAdviceRequest)
+                    {
+                        string[] firstAdviceVariants = {
+                            "Good day, stranger. Do you have any advice for me?",
+                            "Good day. Could you offer me some advice?",
+                            "Hello, mate. What advice might you have for someone like me?"
+                        };
 
+                        // Select a random advice question from the variants
+                        currentQuestion = firstAdviceVariants[UnityEngine.Random.Range(0, firstAdviceVariants.Length)];
+                    }
+                    else
+                    {
+                        string[] adviceVariants = {
+                            "Hmm. Do you have any advice for me?",
+                            "I see. Could you offer me some advice?",
+                            "Interesting. What advice might you have for someone like me?"
+                        };
+
+                        // Select a random advice question from the variants
+                        currentQuestion = adviceVariants[UnityEngine.Random.Range(0, adviceVariants.Length)];
+                    }
+                }
+                else
+                {
+                    // Fetch the standard question text for other items
+                    currentQuestion = TalkManager.Instance.GetQuestionText(listItem, selectedTalkTone);
+                }
+            }
+            else
+            {
+                currentQuestion = "";
+            }
+
+            // Set the text label for the player's say panel
             textlabelPlayerSays.Text = currentQuestion;
         }
 
@@ -1473,6 +1509,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             UpdateScrollBarConversation();
             UpdateScrollButtonsConversation();
+            isFirstAdviceRequest = false; // Update the flag as advice has now been requested
         }
 
         protected virtual void SelectTopicFromTopicList(int index, bool forceExecution = false)
@@ -1559,11 +1596,23 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     }
                     else
                     {
+                        // Check if the question is about the player's current location
+                        if (listItem.questionType == TalkManager.QuestionType.WhereAmI) {
+                            if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName)) {
+                                // Convert the region name to lowercase and add it to knownCaptions
+                                string regionNameToAdd = currentRegionName.ToString().ToLower();
+                                if (!knownCaptions.Contains(regionNameToAdd)) {
+                                    knownCaptions.Add(regionNameToAdd);
+                                }
+                            } else {
+                                Debug.LogError("Current Region Name not found in filterVariables.");
+                            }
+                        }
+
                         // Fetch the answer using the vanilla method
                         answer = TalkManager.Instance.GetAnswerText(listItem);
                     }
                 }
-                SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
 
                 if (topicsUpdated) // Only update the topics if at least one new caption was added
                 {
@@ -1577,6 +1626,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     listboxTopic.SelectedIndex = newIndex;
                 }
                 UpdateQuestion(newIndex);
+                SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
             }
             inListboxTopicContentUpdate = false;
         }
