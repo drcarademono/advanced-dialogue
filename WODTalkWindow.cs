@@ -1033,6 +1033,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         private bool EvaluateConditions(DialogueListItem item)
         {
+            System.Random random = new System.Random(); // Initialize a random number generator
+
             // Loop through each condition set (C1, C2, C3)
             for (int i = 1; i <= 3; i++)
             {
@@ -1057,55 +1059,57 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 string comparisonOperator = item.DialogueData[cComparison] as string;
                 string valueToCompare = item.DialogueData[cValue] as string;
 
-                // If the filterVariables dictionary contains the variable, perform comparison
-                if (filterVariables.TryGetValue(variableName, out object variableValue))
+                object variableValue;
+                // Generate a random number for each "Random Number" condition
+                if (variableName == "Random Number")
                 {
-                    // Split valueToCompare into an array and trim each entry
-                    string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
-                    
-                    // Assume the condition is not met until proven otherwise
-                    bool conditionMet = false;
-
-                    // Perform comparison based on the operator
-                    switch (comparisonOperator)
-                    {
-                        case "==":
-                            conditionMet = valuesToCompare.Any(v => v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
-                            break;
-                        case "!=":
-                            conditionMet = valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
-                            break;
-                        case "<":
-                        case ">":
-                        case "<=":
-                        case ">=":
-                            // Ensure both variableValue and valueToCompare are integers for numeric comparisons
-                            if (int.TryParse(variableValue.ToString(), out int intVariableValue) &&
-                                valuesToCompare.All(v => int.TryParse(v, out int intValue)))
-                            {
-                                conditionMet = valuesToCompare.All(v => EvaluateNumericComparison(intVariableValue, int.Parse(v), comparisonOperator));
-                            }
-                            else
-                            {
-                                Debug.LogError($"Cannot perform numeric comparison on non-integer variable '{variableName}' or value '{valueToCompare}'.");
-                                return false;
-                            }
-                            break;
-                        default:
-                            Debug.LogError($"Unknown comparison operator '{comparisonOperator}'.");
-                            return false; // Unknown operator, do not show item
-                    }
-
-                    // If the condition has not been met, do not show the item
-                    if (!conditionMet)
-                        return false;
+                    variableValue = random.Next(1, 101); // Generate a random number from 1 to 100
                 }
-                else
+                else if (!filterVariables.TryGetValue(variableName, out variableValue))
                 {
                     // If the variable is not found in filterVariables, do not show the item
                     Debug.LogError($"Variable '{variableName}' not found in filterVariables.");
                     return false;
                 }
+
+                // Perform comparison based on the operator
+                string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
+                bool conditionMet = false;
+                switch (comparisonOperator)
+                {
+                    case "==":
+                        // Check if any value matches the variable value as string
+                        conditionMet = valuesToCompare.Any(v => v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                        break;
+                    case "!=":
+                        // Check if all values do not match the variable value as string
+                        conditionMet = valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                        break;
+                    case "<":
+                    case ">":
+                    case "<=":
+                    case ">=":
+                        // Ensure both variableValue and valueToCompare are integers for numeric comparisons
+                        if (int.TryParse(variableValue.ToString(), out int intVariableValue) &&
+                            valuesToCompare.All(v => int.TryParse(v, out int intValue)))
+                        {
+                            conditionMet = valuesToCompare.All(v => EvaluateNumericComparison(intVariableValue, int.Parse(v), comparisonOperator));
+                        }
+                        else
+                        {
+                            Debug.LogError($"Cannot perform numeric comparison on non-integer variable '{variableName}' or value '{valueToCompare}'.");
+                            return false;
+                        }
+                        break;
+                    default:
+                        // Log error for unknown operators
+                        Debug.LogError($"Unknown comparison operator '{comparisonOperator}'.");
+                        return false; // Unknown operator, do not show item
+                }
+
+                // If the condition has not been met, do not show the item
+                if (!conditionMet)
+                    return false;
             }
 
             // If all conditions are met or skipped, show the item
@@ -1126,6 +1130,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 case ">=":
                     return variableValue >= comparisonValue;
                 default:
+                    // Handle unexpected comparison operator
                     throw new ArgumentException($"Invalid comparison operator: {comparisonOperator}");
             }
         }
@@ -1670,14 +1675,17 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     {
                         // Check if the question is about the player's current location
                         if (listItem.questionType == TalkManager.QuestionType.WhereAmI) {
-                            if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName)) {
-                                // Convert the region name to lowercase and add it to knownCaptions
-                                string regionNameToAdd = currentRegionName.ToString().ToLower();
-                                if (!knownCaptions.Contains(regionNameToAdd)) {
-                                    knownCaptions.Add(regionNameToAdd);
+                            // Ensure the current NPC Type is Mobile
+                            if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Mobile) {
+                                if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName)) {
+                                    // Convert the region name to lowercase and add it to knownCaptions
+                                    string regionNameToAdd = currentRegionName.ToString().ToLower();
+                                    if (!knownCaptions.Contains(regionNameToAdd)) {
+                                        knownCaptions.Add(regionNameToAdd);
+                                    }
+                                } else {
+                                    Debug.LogError("Current Region Name not found in filterVariables.");
                                 }
-                            } else {
-                                Debug.LogError("Current Region Name not found in filterVariables.");
                             }
                         }
 
