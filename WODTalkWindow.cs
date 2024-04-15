@@ -16,6 +16,10 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using DaggerfallWorkshop.Game.Entity;
+using DaggerfallWorkshop.Game.Items;
+using DaggerfallWorkshop.Game.Player;
+using DaggerfallWorkshop.Game.Questing;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
@@ -25,7 +29,6 @@ using DaggerfallConnect.Utility;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
-using DaggerfallWorkshop.Game.Player;
 
 namespace DaggerfallWorkshop.Game.UserInterface
 {
@@ -1704,59 +1707,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             filterVariables.Clear(); // Clear the existing dictionary before populating
 
-            // Get the instance of DaggerfallDateTime
-            DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
-
-            // Store date and time information
-            filterVariables["Year"] = dateTime.Year;
-            filterVariables["Month"] = dateTime.Month;
-            filterVariables["MonthName"] = dateTime.MonthName;
-            filterVariables["Day"] = dateTime.DayOfMonth;
-            filterVariables["DayName"] = dateTime.DayName;
-            filterVariables["Season"] = dateTime.SeasonName;
-            filterVariables["IsDay"] = dateTime.IsDay;
-            filterVariables["IsNight"] = dateTime.IsNight;
-            filterVariables["Massar Lunar Phase"] = dateTime.MassarLunarPhase;
-            filterVariables["Secunda Lunar Phase"] = dateTime.SecundaLunarPhase;
-
-            // Get the instance of PlayerGPS from GameManager
-            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
-
-            // Store Player GPS data
-            filterVariables["Current Map Pixel"] = playerGPS.CurrentMapPixel;
-            filterVariables["Current Climate Index"] = playerGPS.CurrentClimateIndex;
-            filterVariables["Current Politic Index"] = playerGPS.CurrentPoliticIndex;
-            filterVariables["Current Region Index"] = playerGPS.CurrentRegionIndex;
-            filterVariables["Current Location Index"] = playerGPS.CurrentLocationIndex;
-            filterVariables["Current Map ID"] = playerGPS.CurrentMapID;
-            filterVariables["Has Current Location"] = playerGPS.HasCurrentLocation;
-            filterVariables["Is Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
-            filterVariables["Current Region"] = playerGPS.CurrentRegion;
-            filterVariables["Current Region Name"] = playerGPS.CurrentRegionName;
-            filterVariables["Current Localized Region Name"] = playerGPS.CurrentLocalizedRegionName;
-            filterVariables["Current Localized Location Name"] = playerGPS.CurrentLocalizedLocationName;
-            filterVariables["Current Climate Settings"] = playerGPS.ClimateSettings;
-            filterVariables["Current Location"] = playerGPS.CurrentLocation;
-            filterVariables["Current Location Type"] = playerGPS.CurrentLocationType;
-            filterVariables["Location Rect"] = playerGPS.LocationRect;
-            filterVariables["Location Revealed By Map Item"] = playerGPS.LocationRevealedByMapItem;
-
-            // Utility Methods of PlayerGPS
-            filterVariables["Name Bank of Current Region"] = playerGPS.GetNameBankOfCurrentRegion();
-            filterVariables["Race of Current Region"] = playerGPS.GetRaceOfCurrentRegion();
-            filterVariables["People of Current Region (Faction ID)"] = playerGPS.GetPeopleOfCurrentRegion();
-            filterVariables["Current Region Faction (Faction ID)"] = playerGPS.GetCurrentRegionFaction();
-            filterVariables["Court of Current Region (Faction ID)"] = playerGPS.GetCourtOfCurrentRegion();
-            filterVariables["Current Region Vampire Clan (Faction ID)"] = playerGPS.GetCurrentRegionVampireClan();
-            filterVariables["Dominant Temple in Current Region (Faction ID)"] = playerGPS.GetTempleOfCurrentRegion();
-            filterVariables["Is Player In Town"] = playerGPS.IsPlayerInTown();
-            filterVariables["Is Player In Town (Inside Location Rect)"] = playerGPS.IsPlayerInTown(true);
-            filterVariables["Is Player In Town (Inside Location Rect, Outside Buildings)"] = playerGPS.IsPlayerInTown(true, true);
-
-            Debug.Log("Checking NPC Type...");
+            //Debug.Log("Checking NPC Type...");
             if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
             {
-                Debug.Log("Talking to a Static NPC");
+                //Debug.Log("Talking to a Static NPC");
                 StaticNPC staticNpc = TalkManager.Instance.StaticNPC;
                 if (staticNpc != null)
                 {
@@ -1819,6 +1773,30 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 Debug.Log("No NPC or Unknown NPC Type");
             }
 
+            // Get the instance of DaggerfallDateTime
+            DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+
+            // Store date and time information
+            filterVariables["Year"] = dateTime.Year;
+            filterVariables["Month"] = dateTime.Month;
+            filterVariables["MonthName"] = dateTime.MonthName;
+            filterVariables["Day"] = dateTime.DayOfMonth;
+            filterVariables["DayName"] = dateTime.DayName;
+            filterVariables["Season"] = dateTime.SeasonName;
+            filterVariables["Is Day"] = dateTime.IsDay;
+            filterVariables["Is Night"] = dateTime.IsNight;
+            filterVariables["Massar Lunar Phase"] = dateTime.MassarLunarPhase;
+            filterVariables["Secunda Lunar Phase"] = dateTime.SecundaLunarPhase;
+
+            // WeatherManager instance
+            WeatherManager weatherManager = GameManager.Instance.WeatherManager;
+
+            // Store weather information
+            filterVariables["Is Raining"] = weatherManager.IsRaining;
+            filterVariables["Is Storming"] = weatherManager.IsStorming;
+            filterVariables["Is Snowing"] = weatherManager.IsSnowing;
+            filterVariables["Is Overcast"] = weatherManager.IsOvercast;
+
             // Calculate holiday ID and store holiday name
             const int holidaysStartID = 8349;
             uint minutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
@@ -1839,6 +1817,113 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 filterVariables["Current Holiday"] = "No holiday today.";
             }
+
+            // Get the instance of PlayerGPS from GameManager
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+
+            // Store Player GPS data
+            filterVariables["Current Map Pixel"] = playerGPS.CurrentMapPixel;
+            filterVariables["Current Climate Index"] = playerGPS.CurrentClimateIndex;
+            filterVariables["Current Politic Index"] = playerGPS.CurrentPoliticIndex;
+            filterVariables["Current Region Index"] = playerGPS.CurrentRegionIndex;
+            filterVariables["Current Location Index"] = playerGPS.CurrentLocationIndex;
+            filterVariables["Current Map ID"] = playerGPS.CurrentMapID;
+            filterVariables["Has Current Location"] = playerGPS.HasCurrentLocation;
+            filterVariables["Is Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
+            filterVariables["Current Region"] = playerGPS.CurrentRegion;
+            filterVariables["Current Region Name"] = playerGPS.CurrentRegionName;
+            filterVariables["Current Climate Settings"] = playerGPS.ClimateSettings;
+            filterVariables["Current Location"] = playerGPS.CurrentLocation;
+            filterVariables["Current Location Type"] = playerGPS.CurrentLocationType;
+
+            // Utility Methods of PlayerGPS
+            filterVariables["Name Bank of Current Region"] = playerGPS.GetNameBankOfCurrentRegion();
+            filterVariables["Race of Current Region"] = playerGPS.GetRaceOfCurrentRegion();
+            filterVariables["People of Current Region (Faction ID)"] = playerGPS.GetPeopleOfCurrentRegion();
+            filterVariables["Current Region Faction (Faction ID)"] = playerGPS.GetCurrentRegionFaction();
+            filterVariables["Court of Current Region (Faction ID)"] = playerGPS.GetCourtOfCurrentRegion();
+            filterVariables["Current Region Vampire Clan (Faction ID)"] = playerGPS.GetCurrentRegionVampireClan();
+            filterVariables["Dominant Temple in Current Region (Faction ID)"] = playerGPS.GetTempleOfCurrentRegion();
+            filterVariables["Is Player In Town"] = playerGPS.IsPlayerInTown();
+
+            // Get the instance of PlayerEntity from GameManager
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+
+            // Store player-specific data
+            filterVariables["Health"] = player.CurrentHealth;
+            filterVariables["Max Health"] = player.MaxHealth;
+            filterVariables["Magicka"] = player.CurrentMagicka;
+            filterVariables["Max Magicka"] = player.MaxMagicka;
+            filterVariables["Fatigue"] = player.CurrentFatigue;
+            filterVariables["Max Fatigue"] = player.MaxFatigue;
+            filterVariables["Gold"] = player.GoldPieces;
+
+            // Player Skills
+            foreach (DFCareer.Skills skill in Enum.GetValues(typeof(DFCareer.Skills)))
+            {
+                if (skill != DFCareer.Skills.None)
+                {
+                    filterVariables[skill.ToString()] = player.Skills.GetPermanentSkillValue(skill);
+                }
+            }
+
+            // Player Inventory
+            ItemCollection inventory = GameManager.Instance.PlayerEntity.Items;
+
+            var itemSummary = new Dictionary<string, int>();
+            for (int i = 0; i < inventory.Count; i++)
+            {
+                DaggerfallUnityItem item = inventory.GetItem(i);
+                if (item != null)
+                {
+                    string itemName = item.ItemName;
+                    if (itemSummary.ContainsKey(itemName))
+                    {
+                        itemSummary[itemName] += item.stackCount;
+                    }
+                    else
+                    {
+                        itemSummary[itemName] = item.stackCount;
+                    }
+                }
+            }
+
+            // Store each item count in filterVariables
+            foreach (var item in itemSummary)
+            {
+                filterVariables["Item Count: " + item.Key] = item.Value;
+            }
+
+            // Additional inventory metrics
+            filterVariables["Inventory Weight"] = inventory.GetWeight(); // total weight of items
+
+            // Query all active quests
+            ulong[] activeQuests = QuestMachine.Instance.GetAllActiveQuests();
+            Dictionary<string, List<int>> questDetails = new Dictionary<string, List<int>>();
+            foreach (ulong questUID in activeQuests)
+            {
+                Quest quest = QuestMachine.Instance.GetQuest(questUID);
+                if (quest != null)
+                {
+                    List<int> messageIDs = new List<int>();
+                    Quest.LogEntry[] logEntries = quest.GetLogMessages();
+                    foreach (Quest.LogEntry entry in logEntries)
+                    {
+                        // Only add unique message IDs to avoid duplicates
+                        if (!messageIDs.Contains(entry.messageID))
+                            messageIDs.Add(entry.messageID);
+                    }
+                    questDetails.Add(quest.QuestName, messageIDs);
+                }
+            }
+
+            // Store quest details in a more log-friendly format
+            StringBuilder questDetailsFormatted = new StringBuilder();
+            foreach (KeyValuePair<string, List<int>> detail in questDetails)
+            {
+                questDetailsFormatted.AppendLine(detail.Key + ": " + string.Join(", ", detail.Value));
+            }
+            filterVariables["Active Quests"] = questDetailsFormatted.ToString();
 
             // Log all filterVariables
             foreach (var item in filterVariables)
