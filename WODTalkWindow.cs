@@ -13,6 +13,7 @@ using UnityEngine;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using DaggerfallWorkshop.Game.UserInterface;
@@ -1126,7 +1127,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         };
                         DialogueListItem dialogueItem = new DialogueListItem(item);
                         dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
-                        dialogueItem.DialogueData.Add("Answer", values[2]);
+
+                        // Process the answer string through macros
+                        string processedAnswer = ProcessAnswerWithMacros(values[2], this.GetMacroContextProvider());
+                        dialogueItem.DialogueData.Add("Answer", processedAnswer);
+
                         dialogueItem.DialogueData.Add("AddCaption", values[3]);
                         dialogueItem.DialogueData.Add("C1_Variable", values[4]);
                         dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
@@ -1147,6 +1152,38 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 Debug.LogError("CSV asset not found.");
             }
+        }
+
+        // This assumes you have a method to get the current macro context provider
+        private IMacroContextProvider GetMacroContextProvider()
+        {
+            // Assuming TalkManager implements IMacroContextProvider or similar logic
+            return TalkManager.Instance;
+        }
+
+        public string ProcessAnswerWithMacros(string answer, IMacroContextProvider mcp)
+        {
+            // Convert answer string to bytes
+            byte[] answerBytes = Encoding.UTF8.GetBytes(answer);
+
+            // Tokenize the byte array
+            TextFile.Token[] tokens = TextFile.ReadTokens(ref answerBytes, 0, TextFile.Formatting.EndOfRecord);
+
+            // Expand macros within the tokens
+            MacroHelper.ExpandMacros(ref tokens, mcp);
+
+            // Convert tokens back to a single string
+            StringBuilder expandedAnswer = new StringBuilder();
+            foreach (var token in tokens)
+            {
+                if (token.formatting == TextFile.Formatting.Text)
+                    expandedAnswer.Append(token.text);
+                else if (token.formatting == TextFile.Formatting.NewLine)
+                    expandedAnswer.AppendLine();
+                // Handle other formatting as needed
+            }
+
+            return expandedAnswer.ToString();
         }
 
         protected virtual void SetTalkModeWhereIs()
