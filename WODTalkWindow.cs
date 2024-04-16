@@ -29,6 +29,7 @@ using DaggerfallConnect.Utility;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using Wenzil.Console;
 
 namespace DaggerfallWorkshop.Game.UserInterface
 {
@@ -57,6 +58,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?" };
 
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
+
+        public static bool DialogueLog = false;
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -421,6 +424,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected override void Setup()
         {
             base.Setup();
+
+            ConsoleCommandsDatabase.RegisterCommand("DialogueLog", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleDialogueLogging);
 
             ParentPanel.BackgroundColor = ScreenDimColor;
 
@@ -1682,6 +1687,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                     string regionNameToAdd = currentRegionName.ToString().ToLower();
                                     if (!knownCaptions.Contains(regionNameToAdd)) {
                                         knownCaptions.Add(regionNameToAdd);
+                                        topicsUpdated = true;
                                     }
                                 } else {
                                     Debug.LogError("Current Region Name not found in filterVariables.");
@@ -1925,10 +1931,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
             }
 
-            // Log all filterVariables
-            foreach (var item in filterVariables)
+            // Log all filterVariables, only if DialogueLog is enabled
+            if (DialogueLog)
             {
-                Debug.LogFormat("{0}: {1}", item.Key, item.Value);
+                foreach (var item in filterVariables)
+                {
+                    Debug.LogFormat("{0}: {1}", item.Key, item.Value);
+                }
             }
         }
 
@@ -2207,6 +2216,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 isCloseWindowDeferred = false;
                 CloseWindow();
             }
+        }
+
+        string ToggleDialogueLogging(string[] args) {
+            // Toggle the logging state
+            DialogueLog = !DialogueLog;
+
+            // Return the current state as a string to be displayed in the console
+            return $"Dialogue logging is now {(DialogueLog ? "enabled" : "disabled")}";
         }
 
         #endregion
