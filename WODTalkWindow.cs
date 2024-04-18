@@ -1164,8 +1164,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         DialogueListItem dialogueItem = new DialogueListItem(item);
                         dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
 
-                        // Process the answer string through macros
-                        string processedAnswer = ProcessAnswerWithMacros(values[2], this.GetMacroContextProvider());
+                        // Process the answer string through macros, passing lineNumber for error tracking
+                        string processedAnswer = ProcessAnswerWithMacros(values[2], this.GetMacroContextProvider(), lineNumber);
                         dialogueItem.DialogueData.Add("Answer", processedAnswer);
 
                         dialogueItem.DialogueData.Add("AddCaption", values[3]);
@@ -1197,29 +1197,37 @@ namespace DaggerfallWorkshop.Game.UserInterface
             return TalkManager.Instance;
         }
 
-        public string ProcessAnswerWithMacros(string answer, IMacroContextProvider mcp)
+        public string ProcessAnswerWithMacros(string answer, IMacroContextProvider mcp, int lineNumber)
         {
-            // Convert answer string to bytes
-            byte[] answerBytes = Encoding.UTF8.GetBytes(answer);
-
-            // Tokenize the byte array
-            TextFile.Token[] tokens = TextFile.ReadTokens(ref answerBytes, 0, TextFile.Formatting.EndOfRecord);
-
-            // Expand macros within the tokens
-            MacroHelper.ExpandMacros(ref tokens, mcp);
-
-            // Convert tokens back to a single string
-            StringBuilder expandedAnswer = new StringBuilder();
-            foreach (var token in tokens)
+            try
             {
-                if (token.formatting == TextFile.Formatting.Text)
-                    expandedAnswer.Append(token.text);
-                else if (token.formatting == TextFile.Formatting.NewLine)
-                    expandedAnswer.AppendLine();
-                // Handle other formatting as needed
-            }
+                // Convert answer string to bytes
+                byte[] answerBytes = Encoding.UTF8.GetBytes(answer);
 
-            return expandedAnswer.ToString();
+                // Tokenize the byte array
+                TextFile.Token[] tokens = TextFile.ReadTokens(ref answerBytes, 0, TextFile.Formatting.EndOfRecord);
+
+                // Expand macros within the tokens
+                MacroHelper.ExpandMacros(ref tokens, mcp);
+
+                // Convert tokens back to a single string
+                StringBuilder expandedAnswer = new StringBuilder();
+                foreach (var token in tokens)
+                {
+                    if (token.formatting == TextFile.Formatting.Text)
+                        expandedAnswer.Append(token.text);
+                    else if (token.formatting == TextFile.Formatting.NewLine)
+                        expandedAnswer.AppendLine();
+                    // Handle other formatting as needed
+                }
+
+                return expandedAnswer.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error processing macros for line {lineNumber} in CSV: {ex.Message}");
+                return "Error in macro expansion"; // You may choose to return a default error message
+            }
         }
 
         protected virtual void SetTalkModeWhereIs()
