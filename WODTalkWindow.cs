@@ -61,6 +61,16 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public static bool DialogueLog = false;
 
+        protected HashSet<string> respondedCaptions = new HashSet<string>();
+
+        // Define possible responses when the player asks about a caption again
+        string[] repeatedResponses = new string[]
+        {
+            "I've already said all I care to, %ra.",
+            "Enough about [caption] already.",
+            "I'd rather not talk about [caption] anymore, %ra."
+        };
+
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
         protected const string highlightedOptionsImgName = "TALK03I0.IMG";
@@ -269,6 +279,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         public override void OnPush()
         {
             base.OnPush();
+
+            respondedCaptions.Clear();
 
             // Racial override can suppress talk
             // We still setup and push window normally, actual suppression is done in Update()
@@ -1649,35 +1661,52 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
                     if (dialogueItem != null)
                     {
-                        // Fetch the answer from the DialogueData
-                        string answerData = dialogueItem.DialogueData["Answer"] as string;
+                        string captionLower = dialogueItem.ListItem.caption.ToLower();
 
-                        // Split the answer into possible responses if it contains '|'
-                        string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
-                        int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
-                        answer = possibleAnswers[selectedIndex].Trim();
-
-                        // Check for AddCaption and add it to knownCaptions if present
-                        if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
+                        // Check if the caption has been responded to before
+                        if (respondedCaptions.Contains(captionLower))
                         {
-                            string addCaption = dialogueItem.DialogueData["AddCaption"] as string;
-                            if (!string.IsNullOrEmpty(addCaption))
-                            {
-                                // Split the AddCaption string into individual lists corresponding to answers
-                                string[] captionLists = addCaption.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                            // Select a random response template
+                            string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
 
-                                // Ensure there are enough lists to match the selected answer
-                                if (captionLists.Length > selectedIndex)
+                            // Replace [caption] with the actual caption
+                            responseTemplate = responseTemplate.Replace("[caption]", dialogueItem.ListItem.caption);
+
+                            // Process the answer string through macros and use it as the answer
+                            answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
+                        }
+                        else
+                        {
+                            // Fetch the answer from the DialogueData
+                            string answerData = dialogueItem.DialogueData["Answer"] as string;
+
+                            // Split the answer into possible responses if it contains '|'
+                            string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                            int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
+                            answer = possibleAnswers[selectedIndex].Trim();
+
+                            // Add to the set of responded captions
+                            respondedCaptions.Add(captionLower);
+
+                            // Process AddCaption if it exists
+                            if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
+                            {
+                                string addCaption = dialogueItem.DialogueData["AddCaption"] as string;
+                                if (!string.IsNullOrEmpty(addCaption))
                                 {
-                                    string selectedCaptionList = captionLists[selectedIndex].Trim();
-                                    string[] captionsToAdd = selectedCaptionList.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var caption in captionsToAdd)
+                                    string[] captionLists = addCaption.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (captionLists.Length > selectedIndex)
                                     {
-                                        string trimmedCaption = caption.Trim().ToLower();  // Trim and convert to lower case
-                                        if (!knownCaptions.Contains(trimmedCaption))
+                                        string selectedCaptionList = captionLists[selectedIndex].Trim();
+                                        string[] captionsToAdd = selectedCaptionList.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                        foreach (var caption in captionsToAdd)
                                         {
-                                            knownCaptions.Add(trimmedCaption);
-                                            topicsUpdated = true;
+                                            string trimmedCaption = caption.Trim().ToLower();
+                                            if (!knownCaptions.Contains(trimmedCaption))
+                                            {
+                                                knownCaptions.Add(trimmedCaption);
+                                                topicsUpdated = true;
+                                            }
                                         }
                                     }
                                 }
