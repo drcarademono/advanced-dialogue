@@ -1688,7 +1688,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Add to the set of responded captions
                             respondedCaptions.Add(captionLower);
 
-                            // Process AddCaption if it exists
+                            // Process AddCaption if it exists and only if the conditions are met
                             if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
                             {
                                 string addCaption = dialogueItem.DialogueData["AddCaption"] as string;
@@ -1702,10 +1702,19 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                         foreach (var caption in captionsToAdd)
                                         {
                                             string trimmedCaption = caption.Trim().ToLower();
-                                            if (!knownCaptions.Contains(trimmedCaption))
+
+                                            // Check existing dialogue items for this caption and validate conditions
+                                            foreach (var item in dialogueListItems)
                                             {
-                                                knownCaptions.Add(trimmedCaption);
-                                                topicsUpdated = true;
+                                                if (item.ListItem.caption.ToLower() == trimmedCaption && EvaluateConditions(item))
+                                                {
+                                                    if (!knownCaptions.Contains(trimmedCaption))
+                                                    {
+                                                        knownCaptions.Add(trimmedCaption);
+                                                        topicsUpdated = true;
+                                                        break; // Found a valid entry, no need to check further
+                                                    }
+                                                }
                                             }
                                         }
                                     }
