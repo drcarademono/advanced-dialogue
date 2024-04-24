@@ -17,11 +17,13 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using DaggerfallWorkshop.Game.Entity;
+using DaggerfallWorkshop.Game.Formulas;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.Player;
 using DaggerfallWorkshop.Game.Questing;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
+using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
@@ -70,6 +72,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
             "Enough about [caption] already.",
             "I'd rather not talk about [caption] anymore, %ra."
         };
+
+        protected int reactionToPlayer;
+        protected int reactionToPlayer_0_1_2;
+
+        /// From TalkManager, add reaction modifiers when using Etiquette
+        /// and Streetwise in relation to social groups.
+        readonly short[] etiquetteReactionMods = { -10, 5, 10, 15, -15 };
+        readonly short[] streetwiseReactionMods = { 10, 5, -10, -15, 15 };
+
+        int[] toneReactionForTalkSession = { 0, 0, 0 };
+        int lastToneIndex = -1;
+
+        // type of npc talk partners for a conversion
+        public enum NPCType
+        {
+            Static,
+            Mobile,
+            Unset
+        }
+        MobilePersonNPC lastTargetMobileNPC = null; // the last mobile npc talk partner
+        StaticNPC lastTargetStaticNPC = null; // the last static npc talk partner
+        NPCType currentNPCType = NPCType.Unset; // current type of npc talk partner
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -326,6 +350,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
             GetFilterData();
+
+            // Get NPC faction data and reactions
+            FactionFile.FactionData factionData = GetFactionData();
+            reactionToPlayer = GetReactionToPlayer(factionData);
+            FactionFile.SocialGroups npcSocialGroup = (FactionFile.SocialGroups)factionData.sgroup;
+            reactionToPlayer_0_1_2 = GetReactionToPlayer_0_1_2(npcSocialGroup);
 
             UpdateNameNPC();
             SetTalkModeTellMeAbout();
@@ -1985,6 +2015,105 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     Debug.LogFormat("{0}: {1}", item.Key, item.Value);
                 }
             }
+        }
+
+        public FactionFile.FactionData GetFactionData()
+        {
+            FactionFile.FactionData factionData = new FactionFile.FactionData();  // Default or new instance
+            if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
+            {
+                StaticNPC staticNpc = TalkManager.Instance.StaticNPC;
+                if (staticNpc != null)
+                {
+                    StaticNPC.NPCData npcData = staticNpc.Data;
+                    PersistentFactionData persistentFactionData = GameManager.Instance.PlayerEntity.FactionData;
+                    if (persistentFactionData.GetFactionData(npcData.factionID, out FactionFile.FactionData tempFactionData))
+                    {
+                        factionData = tempFactionData;  // Assign if found
+                    }
+                }
+            }
+            return factionData;  // Return either found data or default
+        }
+
+        public int GetReactionToPlayer(FactionFile.FactionData factionData)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+
+            int reaction = factionData.rep + player.BiographyReactionMod + player.GetReactionMod((FactionFile.SocialGroups)factionData.sgroup);
+
+            if (factionData.sgroup >= 0 && factionData.sgroup < player.SGroupReputations.Length)
+                reaction += player.SGroupReputations[factionData.sgroup];
+
+            Debug.Log($"GetReactionToPlayer: Returning reaction value of {reaction}");
+            return reaction;
+        }
+
+        int GetReactionToPlayer_0_1_2(FactionFile.SocialGroups npcSocialGroup)
+        {
+            if (TalkManager.Instance.NPCsAlwaysFriendly())
+            {
+                return 2;
+            }
+
+            int socialGroup = (int)npcSocialGroup;
+            if (socialGroup >= 5)
+                socialGroup = 1; // Merchants
+
+            int toneModifier = 0;
+            int toneIndex = TalkToneToIndex(selectedTalkTone);
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            short skillValue = 0;
+
+            if (toneIndex == 0)
+            {
+                skillValue = player.Skills.GetLiveSkillValue(DFCareer.Skills.Etiquette);
+                toneModifier += etiquetteReactionMods[socialGroup];
+                if (toneReactionForTalkSession[0] == 0)
+                    player.TallySkill(DFCareer.Skills.Etiquette, 1);
+            }
+            else if (toneIndex == 2)
+            {
+                skillValue = player.Skills.GetLiveSkillValue(DFCareer.Skills.Streetwise);
+                toneModifier += streetwiseReactionMods[socialGroup];
+                if (toneReactionForTalkSession[2] == 0)
+                    player.TallySkill(DFCareer.Skills.Streetwise, 1);
+            }
+
+            if (toneIndex != 1)
+                toneModifier += Dice100.FailedRoll(skillValue) ? -10 : 5;
+
+            // Convert question type to index to classic data
+            //int classicQuestionIndex = GetClassicQuestionIndex(qt);
+            int reaction = player.Stats.LivePersonality / 5
+            //   + questionTypeReactionMods[classicQuestionIndex]
+               + toneModifier;
+
+            // Make roll result be the same every time for a given NPC
+            if (currentNPCType == WODTalkWindow.NPCType.Mobile)
+                DFRandom.Seed = (uint)lastTargetMobileNPC.GetHashCode();
+            else if (currentNPCType == WODTalkWindow.NPCType.Static)
+                DFRandom.Seed = (uint)lastTargetStaticNPC.GetHashCode();
+
+            int rollToBeat = DFRandom.random_range_inclusive(0, 20);
+            if (toneReactionForTalkSession[toneIndex] != 0)
+                reaction = toneReactionForTalkSession[toneIndex];
+            else
+                toneReactionForTalkSession[toneIndex] = reaction;
+
+            // Store that we've done the reaction check for this tone this talk session
+            lastToneIndex = toneIndex;
+
+            int result;
+            if (reaction < rollToBeat)
+                result = 0;
+            else if (reaction < rollToBeat + 20)
+                result = 1;
+            else
+                result = 2;
+
+            Debug.Log($"GetReactionToPlayer_0_1_2: Returning reaction category of {result}");
+    return result;
         }
 
         #region event handlers
