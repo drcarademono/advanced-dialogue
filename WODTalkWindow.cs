@@ -54,6 +54,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         public class WODTalkWindowSaveData
         {
             public List<string> knownCaptions = new List<string>();
+            public Dictionary<string, (int numAnswers, int dayOfYear)> numAnswersGivenDialogue = new Dictionary<string, (int numAnswers, int dayOfYear)>();
         }
 
         // Static property for known captions
@@ -61,7 +62,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
 
-        public static bool DialogueLog = false;
+        public static bool AD_Log = false;
 
         protected HashSet<string> respondedCaptions = new HashSet<string>();
 
@@ -94,6 +95,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
         MobilePersonNPC lastTargetMobileNPC = null; // the last mobile npc talk partner
         StaticNPC lastTargetStaticNPC = null; // the last static npc talk partner
         NPCType currentNPCType = NPCType.Unset; // current type of npc talk partner
+
+        public int totalReactionToPlayer;
+        public int maxNumAnswersNpcGivesDialogue;
+
+        // Dictionary to keep track of answers given for each NPC by name
+        public static Dictionary<string, (int numAnswers, int dayOfYear)> numAnswersGivenDialogue = new Dictionary<string, (int numAnswers, int dayOfYear)>();
+
+        // To hold the current number of answers given during this dialogue
+        public int currentNumAnswersGivenDialogue = 0;
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -300,14 +310,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
         }
 
-        public override void OnPush()
+         public override void OnPush()
         {
             base.OnPush();
 
             respondedCaptions.Clear();
-
-            // Racial override can suppress talk
-            // We still setup and push window normally, actual suppression is done in Update()
             MagicAndEffects.MagicEffects.RacialOverrideEffect racialOverride = GameManager.Instance.PlayerEffectManager.GetRacialOverrideEffect();
             if (racialOverride != null)
                 suppressTalk = racialOverride.GetSuppressTalk(out suppressTalkMessage);
@@ -317,8 +324,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 listboxTopic.ClearItems();
 
             SetStartConversation();
-
-            // Reset scrollbars
             if (verticalScrollBarTopic != null)
                 verticalScrollBarTopic.ScrollIndex = 0;
             if (horizontalSliderTopic != null)
@@ -351,11 +356,31 @@ namespace DaggerfallWorkshop.Game.UserInterface
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
             GetFilterData();
 
-            // Get NPC faction data and reactions
-            FactionFile.FactionData factionData = GetFactionData();
-            reactionToPlayer = GetReactionToPlayer(factionData);
-            FactionFile.SocialGroups npcSocialGroup = (FactionFile.SocialGroups)factionData.sgroup;
-            reactionToPlayer_0_1_2 = GetReactionToPlayer_0_1_2(npcSocialGroup);
+            RemoveNumAnswersGivenForNPC();
+
+            maxNumAnswersNpcGivesDialogue = 2 + totalReactionToPlayer;  // Set total number of dialogue answers NPC gives
+
+            string npcName = filterVariables["NPC Name"] as string;
+            if (npcName == null)
+            {
+                Debug.LogError("NPC Name is not set in filterVariables.");
+                return;
+            }
+
+            // Use tuple to handle both numAnswers and dayOfYear
+            if (numAnswersGivenDialogue.TryGetValue(npcName, out (int numAnswers, int dayOfYear) npcData))
+            {
+                DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+                if (npcData.dayOfYear != dateTime.DayOfYear)
+                {
+                    npcData.numAnswers = 0; // Reset the count if the day has changed
+                }
+                currentNumAnswersGivenDialogue = npcData.numAnswers;
+            }
+            else
+            {
+                currentNumAnswersGivenDialogue = 0; // No data means no answers have been given yet
+            }
 
             UpdateNameNPC();
             SetTalkModeTellMeAbout();
@@ -383,12 +408,31 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
             GameManager.Instance.PlayerEntity.Notebook.AddNote(copiedEntries);
 
+            // Retrieve the NPC name from filterVariables and cast it explicitly to string
+            string npcName = filterVariables["NPC Name"] as string; // Use 'as' for safe casting which returns null if the cast fails
+            if (npcName == null)
+            {
+                Debug.LogError("NPC Name is not set in filterVariables when popping the window.");
+                return; // Optionally handle this case if the NPC Name should always be present
+            }
+
+            // Save the current number of answers given and the day of the year for this NPC
+            DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+            int currentDayOfYear = dateTime.DayOfYear;
+            if (numAnswersGivenDialogue.ContainsKey(npcName))
+            {
+                numAnswersGivenDialogue[npcName] = (currentNumAnswersGivenDialogue, currentDayOfYear);
+            }
+            else
+            {
+                numAnswersGivenDialogue.Add(npcName, (currentNumAnswersGivenDialogue, currentDayOfYear));
+            }
+
             // Clear the custom topics
             if (dialogueListItems != null)
             {
                 dialogueListItems.Clear();
             }
-
         }
 
         public override void Update()
@@ -467,7 +511,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             base.Setup();
 
-            ConsoleCommandsDatabase.RegisterCommand("DialogueLog", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleDialogueLogging);
+            ConsoleCommandsDatabase.RegisterCommand("AD_Log", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleADLogging);
 
             ParentPanel.BackgroundColor = ScreenDimColor;
 
@@ -1681,6 +1725,29 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 string answer;
                 bool topicsUpdated = false;
+
+                // Get the current day of the year
+                DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+                int currentDayOfYear = dateTime.DayOfYear;
+
+                // Get the NPC's name from filterVariables
+                string npcName = filterVariables["NPC Name"] as string;
+
+                // Check if the NPC name exists in numAnswersGivenDialogue and get the count of answers given and the day of year
+                if (numAnswersGivenDialogue.TryGetValue(npcName, out (int numAnswers, int dayOfYear) npcData))
+                {
+                    // Your existing logic can remain the same here
+                    if (npcData.dayOfYear != currentDayOfYear)
+                    {
+                        npcData.numAnswers = 0; // Reset the count since it's a new day
+                    }
+                    currentNumAnswersGivenDialogue = npcData.numAnswers;
+                }
+                else
+                {
+                    currentNumAnswersGivenDialogue = 0; // No data means no answers have been given yet
+                }
+
                 if (listItem.questionType == TalkManager.QuestionType.News) 
                 {
                     answer = TalkManager.Instance.GetNewsOrRumors(); // Handle news or rumors
@@ -1707,6 +1774,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         }
                         else
                         {
+                            if (currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
+                            {
+                                // Return a message saying no more questions can be asked and process it with macros
+                                string noMoreQuestionsResponse = ProcessAnswerWithMacros("You are out of questions, %ra.", GetMacroContextProvider(), -1);
+                                SetQuestionAnswerPairInConversationListbox(currentQuestion, noMoreQuestionsResponse);
+                                inListboxTopicContentUpdate = false;
+                                return;
+                            }
+
                             // Fetch the answer from the DialogueData
                             string answerData = dialogueItem.DialogueData["Answer"] as string;
 
@@ -1717,6 +1793,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
                             // Add to the set of responded captions
                             respondedCaptions.Add(captionLower);
+                            currentNumAnswersGivenDialogue++;
+                            numAnswersGivenDialogue[npcName] = (currentNumAnswersGivenDialogue, currentDayOfYear);
+
 
                             // Process AddCaption if it exists and only if the conditions are met
                             if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
@@ -1823,7 +1902,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     filterVariables["NPC Name Bank"] = npcData.nameBank;
                     filterVariables["NPC Billboard Archive Index"] = npcData.billboardArchiveIndex;
                     filterVariables["NPC Billboard Record Index"] = npcData.billboardRecordIndex;
-                    filterVariables["NPC Display Name"] = staticNpc.DisplayName;
+                    filterVariables["NPC Name"] = staticNpc.DisplayName;
                     filterVariables["Is Child NPC"] = staticNpc.IsChildNPC;
 
                     // Store faction details if available
@@ -1854,6 +1933,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     filterVariables["NPC Type"] = "Mobile";
                     filterVariables["NPC Race"] = mobileNpc.Race;
                     filterVariables["NPC Gender"] = mobileNpc.Gender;
+                    filterVariables["NPC Name"] = mobileNpc.NameNPC;
                     filterVariables["Is Guard"] = mobileNpc.IsGuard;
                     filterVariables["NPC Outfit Variant"] = mobileNpc.PersonOutfitVariant;
                 }
@@ -2007,8 +2087,17 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
             }
 
-            // Log all filterVariables, only if DialogueLog is enabled
-            if (DialogueLog)
+            // Get NPC faction data and reactions
+            FactionFile.FactionData npcFactionData = GetFactionData(); // Renamed variable to avoid conflict
+            reactionToPlayer = GetReactionToPlayer(npcFactionData); // Use the renamed variable
+            FactionFile.SocialGroups npcSocialGroup = (FactionFile.SocialGroups)npcFactionData.sgroup; // Use the renamed variable
+            reactionToPlayer_0_1_2 = GetReactionToPlayer_0_1_2(npcSocialGroup); // Use the renamed variable
+
+            totalReactionToPlayer = reactionToPlayer + reactionToPlayer_0_1_2;
+            filterVariables["NPC Reaction"] = totalReactionToPlayer;
+
+            // Log all filterVariables, only if AD_Log is enabled
+            if (AD_Log)
             {
                 foreach (var item in filterVariables)
                 {
@@ -2114,6 +2203,26 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             Debug.Log($"GetReactionToPlayer_0_1_2: Returning reaction category of {result}");
     return result;
+        }
+
+        public void RemoveNumAnswersGivenForNPC()
+        {
+            DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+            int currentDayOfYear = dateTime.DayOfYear;
+
+            var keysToRemove = new List<string>();
+            foreach (var entry in numAnswersGivenDialogue)
+            {
+                if (entry.Value.dayOfYear != currentDayOfYear)
+                {
+                    keysToRemove.Add(entry.Key);
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                numAnswersGivenDialogue.Remove(key);
+            }
         }
 
         #region event handlers
@@ -2393,12 +2502,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
         }
 
-        string ToggleDialogueLogging(string[] args) {
+        string ToggleADLogging(string[] args) {
             // Toggle the logging state
-            DialogueLog = !DialogueLog;
+            AD_Log = !AD_Log;
 
             // Return the current state as a string to be displayed in the console
-            return $"Dialogue logging is now {(DialogueLog ? "enabled" : "disabled")}";
+            return $"Advanced Dialogue logging is now {(AD_Log ? "enabled" : "disabled")}";
         }
 
         #endregion

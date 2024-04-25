@@ -24,7 +24,8 @@ public class WODSaveDataHandler : IHasModSaveData
     {
         return new WODTalkWindow.WODTalkWindowSaveData
         {
-            knownCaptions = new List<string> { "any advice?" }
+            knownCaptions = new List<string> { "any advice?" },
+            numAnswersGivenDialogue = new Dictionary<string, (int numAnswers, int dayOfYear)>()
         };
     }
 
@@ -32,7 +33,8 @@ public class WODSaveDataHandler : IHasModSaveData
     {
         return new WODTalkWindow.WODTalkWindowSaveData
         {
-            knownCaptions = WODTalkWindow.knownCaptions
+            knownCaptions = WODTalkWindow.knownCaptions,
+            numAnswersGivenDialogue = WODTalkWindow.numAnswersGivenDialogue // Ensure this static field exists and is updated properly in your WODTalkWindow class
         };
     }
 
@@ -42,8 +44,10 @@ public class WODSaveDataHandler : IHasModSaveData
         if (data != null)
         {
             WODTalkWindow.knownCaptions = data.knownCaptions;
+            WODTalkWindow.numAnswersGivenDialogue = data.numAnswersGivenDialogue; // Restore this data back into the WODTalkWindow class
         }
     }
 }
+
 
 
