@@ -122,6 +122,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         // To hold the current number of answers given during this dialogue
         public int currentNumAnswersGivenDialogue = 0;
 
+        private bool isFirstAdviceRequest = true;
+
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
         protected const string highlightedOptionsImgName = "TALK03I0.IMG";
@@ -369,6 +371,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             talkOptionLastUsed = TalkOption.None;
             toneLastUsed = -1;
             currentQuestion = "";
+            isFirstAdviceRequest = true;
 
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
             GetFilterData();
@@ -1006,7 +1009,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 {
                     item.caption = TextManager.Instance.GetLocalizedText("resolvingError");
                 }
-                listboxTopic.AddItem(item.caption, out listboxItem);
+
+                // Modify display caption to remove initial "the "
+                string displayCaption = item.caption;
+                if (displayCaption.ToLower().StartsWith("the "))
+                {
+                    displayCaption = displayCaption.Substring(4); // Remove the first 4 characters which are "the "
+                }
+
+                listboxTopic.AddItem(displayCaption, out listboxItem);
                 if (item.type == TalkManager.ListItemType.NavigationBack)
                 {
                     listboxItem.textColor = textcolorCaptionGotoParentList;
@@ -1128,8 +1139,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Add all custom topics from dialogueListItems to the filtered list
             baseTopics.AddRange(knownDialogueItems);
 
-            // Sort the filtered list by caption alphabetically (case-insensitive)
-            baseTopics.Sort((item1, item2) => string.Compare(item1.ListItem.caption, item2.ListItem.caption, StringComparison.OrdinalIgnoreCase));
+            // Helper function to remove "the " prefix for sorting
+            string RemoveThePrefix(string caption)
+            {
+                return caption.ToLower().StartsWith("the ") ? caption.Substring(4) : caption;
+            }
+
+            baseTopics.Sort((item1, item2) => 
+                string.Compare(RemoveThePrefix(item1.ListItem.caption), RemoveThePrefix(item2.ListItem.caption), StringComparison.OrdinalIgnoreCase));
 
             // Use the filtered list to set the topics in your list box
             SetListboxTopics(ref listboxTopic, baseTopics.Select(di => di.ListItem).ToList());
@@ -1595,8 +1612,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
             textlabelPlayerSays.Text = "";
         }
 
-        private bool isFirstAdviceRequest = true;
-
         protected virtual void UpdateQuestion(int index)
         {
             TalkManager.ListItem listItem;
@@ -1778,35 +1793,36 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
                         // Check if the caption has been responded to before
-                        if (respondedCaptions.Contains(captionLower))
+                        if (!AD_Log && respondedCaptions.Contains(captionLower))
                         {
                             // Select a random response template
                             string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
 
-                            // Replace [caption] with the actual caption
-                            responseTemplate = responseTemplate.Replace("[caption]", dialogueItem.ListItem.caption);
+                            // Check if the caption is "Any advice?" and replace it with "advice" in the response
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
+
+                            // Replace [caption] with the modified caption
+                            responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
+
+                            // Process the answer string through macros and use it as the answer
+                            answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
+                        }
+                        else if (!AD_Log && currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
+                        {
+                            // Select a random response template
+                            string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
+
+                            // Check if the caption is "Any advice?" and replace it with "advice" in the response
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
+
+                            // Replace [caption] with the modified caption
+                            responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
 
                             // Process the answer string through macros and use it as the answer
                             answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
                         }
                         else
                         {
-                            if (currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
-                            {
-                                // Select a random response template
-                                string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
-
-                                // Replace [caption] with the actual caption
-                                responseTemplate = responseTemplate.Replace("[caption]", dialogueItem.ListItem.caption);
-
-                                // Process the answer string through macros and use it as the answer
-                                answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
-
-                                SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
-                                inListboxTopicContentUpdate = false;
-                                return;
-                            }
-
                             // Fetch the answer from the DialogueData
                             string answerData = dialogueItem.DialogueData["Answer"] as string;
 
