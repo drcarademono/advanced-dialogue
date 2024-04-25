@@ -1317,6 +1317,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             try
             {
+                // Encode special characters
+                answer = EncodeSpecialCharacters(answer);
+
                 // Convert answer string to bytes
                 byte[] answerBytes = Encoding.UTF8.GetBytes(answer);
 
@@ -1337,13 +1340,36 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     // Handle other formatting as needed
                 }
 
-                return expandedAnswer.ToString();
+                // Decode special characters
+                string finalAnswer = DecodeSpecialCharacters(expandedAnswer.ToString());
+
+                return finalAnswer;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"Error processing macros for line {lineNumber} in CSV: {ex.Message}");
                 return "Error in macro expansion"; // You may choose to return a default error message
             }
+        }
+
+        private string EncodeSpecialCharacters(string text)
+        {
+            return text.Replace("…", "<ELLIPSIS>")
+                       .Replace("“", "<OPEN_QUOTE>")
+                       .Replace("”", "<CLOSE_QUOTE>")
+                       .Replace("‘", "<SINGLE_OPEN_QUOTE>")
+                       .Replace("’", "<SINGLE_CLOSE_QUOTE>")
+                       .Replace("—", "<EM_DASH>");
+        }
+
+        private string DecodeSpecialCharacters(string text)
+        {
+            return text.Replace("<ELLIPSIS>", "…")
+                       .Replace("<OPEN_QUOTE>", "“")
+                       .Replace("<CLOSE_QUOTE>", "”")
+                       .Replace("<SINGLE_OPEN_QUOTE>", "‘")
+                       .Replace("<SINGLE_CLOSE_QUOTE>", "’")
+                       .Replace("<EM_DASH>", "—");
         }
 
         protected virtual void SetTalkModeWhereIs()
