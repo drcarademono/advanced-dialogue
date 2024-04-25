@@ -62,8 +62,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
 
-        public static bool AD_Log = false;
-
         protected HashSet<string> respondedCaptions = new HashSet<string>();
 
         // Define possible responses when the player asks about a caption again
@@ -530,8 +528,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected override void Setup()
         {
             base.Setup();
-
-            ConsoleCommandsDatabase.RegisterCommand("AD_Log", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleADLogging);
 
             ParentPanel.BackgroundColor = ScreenDimColor;
 
@@ -1793,7 +1789,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
                         // Check if the caption has been responded to before
-                        if (!AD_Log && respondedCaptions.Contains(captionLower))
+                        if (!WODDialogue.AD_Log && respondedCaptions.Contains(captionLower))
                         {
                             // Select a random response template
                             string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
@@ -1807,7 +1803,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Process the answer string through macros and use it as the answer
                             answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
                         }
-                        else if (!AD_Log && currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
+                        else if (!WODDialogue.AD_Log && currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
                         {
                             // Select a random response template
                             string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
@@ -2136,8 +2132,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             totalReactionToPlayer = reactionToPlayer + reactionToPlayer_0_1_2;
             filterVariables["NPC Reaction"] = totalReactionToPlayer;
 
-            // Log all filterVariables, only if AD_Log is enabled
-            if (AD_Log)
+            // Log all filterVariables, only if WODDialogue.AD_Log is enabled
+            if (WODDialogue.AD_Log)
             {
                 foreach (var item in filterVariables)
                 {
@@ -2540,14 +2536,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 isCloseWindowDeferred = false;
                 CloseWindow();
             }
-        }
-
-        string ToggleADLogging(string[] args) {
-            // Toggle the logging state
-            AD_Log = !AD_Log;
-
-            // Return the current state as a string to be displayed in the console
-            return $"Advanced Dialogue logging is now {(AD_Log ? "enabled" : "disabled")}";
         }
 
         #endregion
