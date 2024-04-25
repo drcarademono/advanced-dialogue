@@ -72,7 +72,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             "I'd rather not talk about [caption], %ra.",
             "Are you soft in the head, %ra? We already discussed [caption].",
             "Let's not beat a dead horse, %ra. Move on from [caption].",
-            "Do you have a memory of a goldfish? We just went over [caption].",
+            "Do you have the memory of a goldfish? We just went over [caption].",
             "Drop it, %ra. [caption] is old news.",
             "Seriously, %ra? That again? Find someone else to bother."
         };
@@ -1972,6 +1972,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     filterVariables["NPC Name"] = mobileNpc.NameNPC;
                     filterVariables["Is Guard"] = mobileNpc.IsGuard;
                     filterVariables["NPC Outfit Variant"] = mobileNpc.PersonOutfitVariant;
+                    filterVariables["Faction Social Group"] = 1;
                 }
             }
             else
