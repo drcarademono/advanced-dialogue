@@ -69,9 +69,26 @@ namespace DaggerfallWorkshop.Game.UserInterface
         // Define possible responses when the player asks about a caption again
         string[] repeatedResponses = new string[]
         {
-            "I've already said all I care to, %ra.",
+            "I've got nothing more to say about [caption].",
             "Enough about [caption] already.",
-            "I'd rather not talk about [caption] anymore, %ra."
+            "I'd rather not talk about [caption], %ra.",
+            "Are you soft in the head, %ra? We already discussed [caption].",
+            "Let's not beat a dead horse, %ra. Move on from [caption].",
+            "Do you have a memory of a goldfish? We just went over [caption].",
+            "Drop it, %ra. [caption] is old news.",
+            "Seriously, %ra? That again? Find someone else to bother."
+        };
+
+        // Define possible responses when the player asks too many questions
+        string[] exceededMaxResponses = new string[]
+        {
+            "I think you've wasted enough of my time, %ra.",
+            "Go pester someone else about [caption].",
+            "If you'll excuse me, I've got other things to do.",
+            "Enough, %ra! My patience is thin and you've just run out.",
+            "Our chat ends now, %ra. You're becoming a nuisance.",
+            "I've had it. No more questions, %ra.",
+            "Look, %ra, I'm not here to entertain your endless queries."
         };
 
         protected int reactionToPlayer;
@@ -358,7 +375,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             RemoveNumAnswersGivenForNPC();
 
-            maxNumAnswersNpcGivesDialogue = 2 + totalReactionToPlayer;  // Set total number of dialogue answers NPC gives
+            maxNumAnswersNpcGivesDialogue = 1 + totalReactionToPlayer;  // Set total number of dialogue answers NPC gives
 
             string npcName = filterVariables["NPC Name"] as string;
             if (npcName == null)
@@ -1776,9 +1793,16 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         {
                             if (currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
                             {
-                                // Return a message saying no more questions can be asked and process it with macros
-                                string noMoreQuestionsResponse = ProcessAnswerWithMacros("You are out of questions, %ra.", GetMacroContextProvider(), -1);
-                                SetQuestionAnswerPairInConversationListbox(currentQuestion, noMoreQuestionsResponse);
+                                // Select a random response template
+                                string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
+
+                                // Replace [caption] with the actual caption
+                                responseTemplate = responseTemplate.Replace("[caption]", dialogueItem.ListItem.caption);
+
+                                // Process the answer string through macros and use it as the answer
+                                answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
+
+                                SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
                                 inListboxTopicContentUpdate = false;
                                 return;
                             }
