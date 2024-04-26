@@ -8,9 +8,9 @@ using System;
 using System.IO;
 using Wenzil.Console;
 
-public class WODDialogue : MonoBehaviour
+public class ADDialogue : MonoBehaviour
 {
-    public static WODDialogue instance;
+    public static ADDialogue instance;
     public static Mod Mod { get; private set; }
 
     public static bool AD_Log = false;
@@ -20,17 +20,17 @@ public class WODDialogue : MonoBehaviour
     {
         Mod = initParams.Mod;
         var go = new GameObject(Mod.Title);
-        instance = go.AddComponent<WODDialogue>();
+        instance = go.AddComponent<ADDialogue>();
 
         // Register custom UI window if needed
         bool dialogueWindowEnabled = true; // Adjust based on mod settings or conditions
         if(dialogueWindowEnabled)
         {
-            UIWindowFactory.RegisterCustomUIWindow(UIWindowType.Talk, typeof(WODTalkWindow));
+            UIWindowFactory.RegisterCustomUIWindow(UIWindowType.Talk, typeof(ADTalkWindow));
         }
 
         // Set the singleton save data handler as the mod's save data interface
-        Mod.SaveDataInterface = WODSaveDataHandler.Instance; // Set up save data handler
+        Mod.SaveDataInterface = ADSaveDataHandler.Instance; // Set up save data handler
 
         ConsoleCommandsDatabase.RegisterCommand("AD_Log", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleADLogging);
     }

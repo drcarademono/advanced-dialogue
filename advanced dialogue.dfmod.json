@@ -1,5 +1,5 @@
 {
-    "ModTitle": "World of Daggerfall - Dialogue",
+    "ModTitle": "Advanced Dialogue",
     "ModVersion": "0.0.1",
     "ModAuthor": "carademono",
     "ContactInfo": "Lysandus' Tomb Discord",
@@ -8,8 +8,9 @@
     "GUID": "8edbf196-dacf-4fad-ba2f-e8b54d36b154",
     "Files": [
         "Assets/Game/Mods/wod-dialogue/Dialogue/Dialogue.csv",
-        "Assets/Game/Mods/wod-dialogue/WODDialogue.cs",
-        "Assets/Game/Mods/wod-dialogue/WODTalkWindow.cs",
-        "Assets/Game/Mods/wod-dialogue/WODSaveDataHandler.cs"
+        "Assets/Game/Mods/wod-dialogue/ADDialogue.cs",
+        "Assets/Game/Mods/wod-dialogue/ADTalkWindow.cs",
+        "Assets/Game/Mods/wod-dialogue/ADSaveDataHandler.cs",
+        "Assets/Game/Mods/wod-dialogue/advanced dialogue.dfmod.json"
     ]
 }

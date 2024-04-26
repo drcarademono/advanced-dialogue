@@ -25,6 +25,7 @@ using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
+using DaggerfallWorkshop.Localization;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
@@ -35,7 +36,7 @@ using Wenzil.Console;
 
 namespace DaggerfallWorkshop.Game.UserInterface
 {
-    public class WODTalkWindow : DaggerfallTalkWindow
+    public class ADTalkWindow : DaggerfallTalkWindow
     {
 
         public class DialogueListItem
@@ -51,7 +52,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         }
 
         [Serializable]
-        public class WODTalkWindowSaveData
+        public class ADTalkWindowSaveData
         {
             public List<string> knownCaptions = new List<string>();
             public Dictionary<string, (int numAnswers, int dayOfYear)> numAnswersGivenDialogue = new Dictionary<string, (int numAnswers, int dayOfYear)>();
@@ -322,7 +323,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         protected bool isCloseWindowDeferred = false;
 
-        public WODTalkWindow(IUserInterfaceManager uiManager, DaggerfallBaseWindow previous = null)
+        public ADTalkWindow(IUserInterfaceManager uiManager, DaggerfallBaseWindow previous = null)
             : base(uiManager, previous)
         {
         }
@@ -1317,14 +1318,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             try
             {
-                // Encode special characters
-                answer = EncodeSpecialCharacters(answer);
-
-                // Convert answer string to bytes
-                byte[] answerBytes = Encoding.UTF8.GetBytes(answer);
-
-                // Tokenize the byte array
-                TextFile.Token[] tokens = TextFile.ReadTokens(ref answerBytes, 0, TextFile.Formatting.EndOfRecord);
+                // Convert string to RSC tokens using the new approach
+                TextFile.Token[] tokens = DaggerfallStringTableImporter.ConvertStringToRSCTokens(answer);
 
                 // Expand macros within the tokens
                 MacroHelper.ExpandMacros(ref tokens, mcp);
@@ -1340,8 +1335,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     // Handle other formatting as needed
                 }
 
-                // Decode special characters
-                string finalAnswer = DecodeSpecialCharacters(expandedAnswer.ToString());
+                // Convert StringBuilder to string
+                string finalAnswer = expandedAnswer.ToString();
 
                 return finalAnswer;
             }
@@ -1350,26 +1345,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 Debug.LogError($"Error processing macros for line {lineNumber} in CSV: {ex.Message}");
                 return "Error in macro expansion"; // You may choose to return a default error message
             }
-        }
-
-        private string EncodeSpecialCharacters(string text)
-        {
-            return text.Replace("…", "<ELLIPSIS>")
-                       .Replace("“", "<OPEN_QUOTE>")
-                       .Replace("”", "<CLOSE_QUOTE>")
-                       .Replace("‘", "<SINGLE_OPEN_QUOTE>")
-                       .Replace("’", "<SINGLE_CLOSE_QUOTE>")
-                       .Replace("—", "<EM_DASH>");
-        }
-
-        private string DecodeSpecialCharacters(string text)
-        {
-            return text.Replace("<ELLIPSIS>", "…")
-                       .Replace("<OPEN_QUOTE>", "“")
-                       .Replace("<CLOSE_QUOTE>", "”")
-                       .Replace("<SINGLE_OPEN_QUOTE>", "‘")
-                       .Replace("<SINGLE_CLOSE_QUOTE>", "’")
-                       .Replace("<EM_DASH>", "—");
         }
 
         protected virtual void SetTalkModeWhereIs()
@@ -1815,7 +1790,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
                         // Check if the caption has been responded to before
-                        if (!WODDialogue.AD_Log && respondedCaptions.Contains(captionLower))
+                        if (!ADDialogue.AD_Log && respondedCaptions.Contains(captionLower))
                         {
                             // Select a random response template
                             string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
@@ -1829,7 +1804,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Process the answer string through macros and use it as the answer
                             answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
                         }
-                        else if (!WODDialogue.AD_Log && currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
+                        else if (!ADDialogue.AD_Log && currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
                         {
                             // Select a random response template
                             string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
@@ -2159,8 +2134,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             totalReactionToPlayer = reactionToPlayer + reactionToPlayer_0_1_2;
             filterVariables["NPC Reaction"] = totalReactionToPlayer;
 
-            // Log all filterVariables, only if WODDialogue.AD_Log is enabled
-            if (WODDialogue.AD_Log)
+            // Log all filterVariables, only if ADDialogue.AD_Log is enabled
+            if (ADDialogue.AD_Log)
             {
                 foreach (var item in filterVariables)
                 {
@@ -2242,9 +2217,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                + toneModifier;
 
             // Make roll result be the same every time for a given NPC
-            if (currentNPCType == WODTalkWindow.NPCType.Mobile)
+            if (currentNPCType == ADTalkWindow.NPCType.Mobile)
                 DFRandom.Seed = (uint)lastTargetMobileNPC.GetHashCode();
-            else if (currentNPCType == WODTalkWindow.NPCType.Static)
+            else if (currentNPCType == ADTalkWindow.NPCType.Static)
                 DFRandom.Seed = (uint)lastTargetStaticNPC.GetHashCode();
 
             int rollToBeat = DFRandom.random_range_inclusive(0, 20);
