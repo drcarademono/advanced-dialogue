@@ -1710,6 +1710,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         protected virtual void SelectTopicFromTopicList(int index, bool forceExecution = false)
         {
+            // guard execution - this is important because I encountered a issue with listbox and double-click:
+            // when changing listbox content and updating the listbox in the double click event callback the
+            // corresponding item (at the screen position) of the newly created and set content will receive
+            // the same double-click event and thus trigger its callback - which is (a) unwanted and (b) can lead -
+            // in the case where the click position is a group item in first list and a "previous list" item
+            // in linked second list - to an infinite loop (e.g. location list with group item on first position and
+            // "previous" item on linked second list)
+            // SIDE NOTE: don't use return inside this function (or if you do, don't forget to set
+            // inListboxTopicContentUpdate to false again before!)
             if (inListboxTopicContentUpdate && !forceExecution)
                 return;
             inListboxTopicContentUpdate = true;
@@ -1720,7 +1729,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return;
             }
 
-            string currentCaption = NormalizeCaption(listCurrentTopics[index].caption);
+            string currentCaption = listCurrentTopics[index].caption;
             listboxTopic.SelectedIndex = index;
             TalkManager.ListItem listItem = listCurrentTopics[index];
             if (listItem.type == TalkManager.ListItemType.NavigationBack)
@@ -1745,112 +1754,159 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 string answer;
                 bool topicsUpdated = false;
-                string npcName = filterVariables["NPC Name"] as string;
-                int currentDayOfYear = DaggerfallUnity.Instance.WorldTime.Now.DayOfYear;
 
-                if (numAnswersGivenDialogue.TryGetValue(npcName, out (int numAnswers, int dayOfYear) npcData) && npcData.dayOfYear == currentDayOfYear)
+                // Get the current day of the year
+                DaggerfallDateTime dateTime = DaggerfallUnity.Instance.WorldTime.Now;
+                int currentDayOfYear = dateTime.DayOfYear;
+
+                // Get the NPC's name from filterVariables
+                string npcName = filterVariables["NPC Name"] as string;
+
+                // Check if the NPC name exists in numAnswersGivenDialogue and get the count of answers given and the day of year
+                if (numAnswersGivenDialogue.TryGetValue(npcName, out (int numAnswers, int dayOfYear) npcData))
                 {
+                    // Your existing logic can remain the same here
+                    if (npcData.dayOfYear != currentDayOfYear)
+                    {
+                        npcData.numAnswers = 0; // Reset the count since it's a new day
+                    }
                     currentNumAnswersGivenDialogue = npcData.numAnswers;
                 }
                 else
                 {
-                    currentNumAnswersGivenDialogue = 0; // Reset on a new day or if not present
+                    currentNumAnswersGivenDialogue = 0; // No data means no answers have been given yet
                 }
 
-                if (listItem.questionType == TalkManager.QuestionType.News)
+                if (listItem.questionType == TalkManager.QuestionType.News) 
                 {
-                    answer = TalkManager.Instance.GetNewsOrRumors();
-                }
+                    answer = TalkManager.Instance.GetNewsOrRumors(); // Handle news or rumors
+                } 
                 else
                 {
-                    DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => NormalizeCaption(di.ListItem.caption) == currentCaption);
+                    // Check if this ListItem has a DialogueListItem wrapper
+                    DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
                     if (dialogueItem != null)
                     {
-                        string normalizedCaption = NormalizeCaption(dialogueItem.ListItem.caption);
-                        if (!ADDialogue.AD_Log && respondedCaptions.Contains(normalizedCaption))
+                        string captionLower = dialogueItem.ListItem.caption.ToLower();
+
+                        // Check if the caption has been responded to before
+                        if (!ADDialogue.AD_Log && respondedCaptions.Contains(captionLower))
                         {
-                            answer = GenerateRepeatedResponse(dialogueItem);
+                            // Select a random response template
+                            string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
+
+                            // Check if the caption is "Any advice?" and replace it with "advice" in the response
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
+
+                            // Replace [caption] with the modified caption
+                            responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
+
+                            // Process the answer string through macros and use it as the answer
+                            answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
                         }
                         else if (!ADDialogue.AD_Log && currentNumAnswersGivenDialogue >= maxNumAnswersNpcGivesDialogue)
                         {
-                            answer = GenerateExceededResponse(dialogueItem);
+                            // Select a random response template
+                            string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
+
+                            // Check if the caption is "Any advice?" and replace it with "advice" in the response
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
+
+                            // Replace [caption] with the modified caption
+                            responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
+
+                            // Process the answer string through macros and use it as the answer
+                            answer = ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
                         }
                         else
                         {
-                            answer = ProcessDialogueItem(dialogueItem, out topicsUpdated);
+                            // Fetch the answer from the DialogueData
+                            string answerData = dialogueItem.DialogueData["Answer"] as string;
+
+                            // Split the answer into possible responses if it contains '|'
+                            string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                            int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
+                            answer = possibleAnswers[selectedIndex].Trim();
+
+                            // Add to the set of responded captions
+                            respondedCaptions.Add(captionLower);
+                            currentNumAnswersGivenDialogue++;
+                            numAnswersGivenDialogue[npcName] = (currentNumAnswersGivenDialogue, currentDayOfYear);
+
+
+                            // Process AddCaption if it exists and only if the conditions are met
+                            if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
+                            {
+                                string addCaption = dialogueItem.DialogueData["AddCaption"] as string;
+                                if (!string.IsNullOrEmpty(addCaption))
+                                {
+                                    string[] captionLists = addCaption.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (captionLists.Length > selectedIndex)
+                                    {
+                                        string selectedCaptionList = captionLists[selectedIndex].Trim();
+                                        string[] captionsToAdd = selectedCaptionList.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                        foreach (var caption in captionsToAdd)
+                                        {
+                                            string trimmedCaption = caption.Trim().ToLower();
+
+                                            // Check existing dialogue items for this caption and validate conditions
+                                            foreach (var item in dialogueListItems)
+                                            {
+                                                if (item.ListItem.caption.ToLower() == trimmedCaption && EvaluateConditions(item))
+                                                {
+                                                    if (!knownCaptions.Contains(trimmedCaption))
+                                                    {
+                                                        knownCaptions.Add(trimmedCaption);
+                                                        topicsUpdated = true;
+                                                        break; // Found a valid entry, no need to check further
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     else
                     {
+                        // Check if the question is about the player's current location
+                        if (listItem.questionType == TalkManager.QuestionType.WhereAmI) {
+                            // Ensure the current NPC Type is Mobile
+                            if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Mobile) {
+                                if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName)) {
+                                    // Convert the region name to lowercase and add it to knownCaptions
+                                    string regionNameToAdd = currentRegionName.ToString().ToLower();
+                                    if (!knownCaptions.Contains(regionNameToAdd)) {
+                                        knownCaptions.Add(regionNameToAdd);
+                                        topicsUpdated = true;
+                                    }
+                                } else {
+                                    Debug.LogError("Current Region Name not found in filterVariables.");
+                                }
+                            }
+                        }
+
+                        // Fetch the answer using the vanilla method
                         answer = TalkManager.Instance.GetAnswerText(listItem);
                     }
                 }
 
-                if (topicsUpdated)
+                if (topicsUpdated) // Only update the topics if at least one new caption was added
                 {
                     UpdateTellMeAboutTopics();
                 }
 
-                int newIndex = listCurrentTopics.FindIndex(x => NormalizeCaption(x.caption) == currentCaption);
-                listboxTopic.SelectedIndex = (newIndex != -1) ? newIndex : index;
-                UpdateQuestion(listboxTopic.SelectedIndex);
+                // Restore the selection based on ListItem's caption
+                int newIndex = listCurrentTopics.FindIndex(x => x.caption == currentCaption);
+                if (newIndex != -1)
+                {
+                    listboxTopic.SelectedIndex = newIndex;
+                }
+                UpdateQuestion(newIndex);
                 SetQuestionAnswerPairInConversationListbox(currentQuestion, answer);
             }
             inListboxTopicContentUpdate = false;
-        }
-
-        private string NormalizeCaption(string caption)
-        {
-            return caption.Replace("'", "''").ToLower().Trim();
-        }
-
-        private string GenerateRepeatedResponse(DialogueListItem dialogueItem)
-        {
-            string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
-            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
-            responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
-            return ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
-        }
-
-        private string GenerateExceededResponse(DialogueListItem dialogueItem)
-        {
-            string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
-            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
-            responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
-            return ProcessAnswerWithMacros(responseTemplate, this.GetMacroContextProvider(), -1);
-        }
-
-        private string ProcessDialogueItem(DialogueListItem dialogueItem, out bool topicsUpdated)
-        {
-            topicsUpdated = false;
-            string answerData = dialogueItem.DialogueData["Answer"] as string;
-            string[] possibleAnswers = answerData.Split(new char[] {'|'}); // Corrected
-            int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
-            string answer = possibleAnswers[selectedIndex].Trim();
-            respondedCaptions.Add(NormalizeCaption(dialogueItem.ListItem.caption));
-            currentNumAnswersGivenDialogue++;
-            numAnswersGivenDialogue[filterVariables["NPC Name"] as string] = (currentNumAnswersGivenDialogue, DaggerfallUnity.Instance.WorldTime.Now.DayOfYear);
-
-            if (dialogueItem.DialogueData.ContainsKey("AddCaption") && dialogueItem.DialogueData["AddCaption"] is string addCaption && !string.IsNullOrEmpty(addCaption))
-            {
-                string[] captionLists = addCaption.Split(new char[] {'|'}); // Corrected
-                if (captionLists.Length > selectedIndex)
-                {
-                    string selectedCaptionList = captionLists[selectedIndex].Trim();
-                    string[] captionsToAdd = selectedCaptionList.Split(new char[] {','}); // Corrected
-                    foreach (string caption in captionsToAdd)
-                    {
-                        string trimmedCaption = NormalizeCaption(caption);
-                        if (!knownCaptions.Contains(trimmedCaption) && dialogueListItems.Any(item => NormalizeCaption(item.ListItem.caption) == trimmedCaption && EvaluateConditions(item)))
-                        {
-                            knownCaptions.Add(trimmedCaption);
-                            topicsUpdated = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            return answer;
         }
 
         public void GetFilterData()
