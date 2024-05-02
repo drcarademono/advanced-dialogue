@@ -5,7 +5,7 @@
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Michael Rauter (Nystul)
 // Contributors:    Numidium, TheExceptionist
-// 
+//
 // Notes:
 //
 
@@ -93,6 +93,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected int reactionToPlayer;
         protected int reactionToPlayer_0_1_2;
 
+        public int totalReactionToPlayer;
+        public int maxNumAnswersNpcGivesDialogue;
+
         /// From TalkManager, add reaction modifiers when using Etiquette
         /// and Streetwise in relation to social groups.
         readonly short[] etiquetteReactionMods = { -10, 5, 10, 15, -15 };
@@ -111,9 +114,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
         MobilePersonNPC lastTargetMobileNPC = null; // the last mobile npc talk partner
         StaticNPC lastTargetStaticNPC = null; // the last static npc talk partner
         NPCType currentNPCType = NPCType.Unset; // current type of npc talk partner
-
-        public int totalReactionToPlayer;
-        public int maxNumAnswersNpcGivesDialogue;
 
         // Dictionary to keep track of answers given for each NPC by name
         public static Dictionary<string, (int numAnswers, int dayOfYear)> numAnswersGivenDialogue = new Dictionary<string, (int numAnswers, int dayOfYear)>();
@@ -189,7 +189,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         protected List<TalkManager.ListItem> listCurrentTopics; // current topic list metadata of displayed topic list in topic frame
 
-        protected Texture2D textureBackground;        
+        protected Texture2D textureBackground;
         protected Texture2D textureHighlightedOptions;
         protected Texture2D textureGrayedOutCategories;
         protected Texture2D texturePortrait;
@@ -356,7 +356,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             if (textlabelPlayerSays != null)
                 textlabelPlayerSays.Text = "";
-            
+
             if (isSetup)
             {
                 SetTalkModeWhereIs();
@@ -376,8 +376,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
             GetFilterData();
 
             RemoveNumAnswersGivenForNPC();
-
-            maxNumAnswersNpcGivesDialogue = 1 + totalReactionToPlayer;  // Set total number of dialogue answers NPC gives
 
             string npcName = filterVariables["NPC Name"] as string;
             if (npcName == null)
@@ -469,7 +467,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         }
 
         public virtual void UpdateListboxTopic()
-        {               
+        {
             if (listboxTopic != null)
             {
                 string oldTopic = listboxTopic.SelectedIndex >= 0 ? listboxTopic.SelectedItem : null;
@@ -489,7 +487,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 if (oldTopic != null)
                     listboxTopic.SelectedIndex = listboxTopic.FindIndex(oldTopic);
                 UpdateQuestion(listboxTopic.SelectedIndex);
-            }                
+            }
         }
 
         public override void SetNPCPortrait(FacePortraitArchive facePortraitArchive, int recordId)
@@ -591,7 +589,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             colorsTellMeAboutGrayedOut = textureBackground.GetPixels((int)(4 * (textureBackground.width / 320f)), (int)((200 - 4 - 10) * (textureBackground.height / 200f)), (int)(107 * (textureBackground.width / 320f)), (int)(10 * (textureBackground.height / 200f)));
             colorsWhereIsGrayedOut = textureBackground.GetPixels((int)(4 * (textureBackground.width / 320f)), (int)((200 - 14 - 10) * (textureBackground.height / 200f)), (int)(107 * (textureBackground.width / 320f)), (int)(10 * (textureBackground.height / 200f)));
 
-            colorsTellMeAboutHighlighted = textureHighlightedOptions.GetPixels(0, textureHighlightedOptions.height/2, textureHighlightedOptions.width, textureHighlightedOptions.height/2);            
+            colorsTellMeAboutHighlighted = textureHighlightedOptions.GetPixels(0, textureHighlightedOptions.height/2, textureHighlightedOptions.width, textureHighlightedOptions.height/2);
             colorsWhereIsHighlighted = textureHighlightedOptions.GetPixels(0, 0, textureHighlightedOptions.width, textureHighlightedOptions.height/2);
 
             colorsCategoryLocationGrayedOut = textureGrayedOutCategories.GetPixels(0, textureGrayedOutCategories.height * 3 / 4, textureGrayedOutCategories.width, textureGrayedOutCategories.height / 4);
@@ -665,7 +663,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             textlabelPlayerSays.WrapText = true;
             textlabelPlayerSays.WrapWords = true;
             textlabelPlayerSays.TextColor = textcolorPlayerSays;
-            mainPanel.Components.Add(textlabelPlayerSays);                   
+            mainPanel.Components.Add(textlabelPlayerSays);
 
             listboxTopic = new ListBox();
             listboxTopic.OnScroll += ListBoxTopic_OnScroll;
@@ -725,7 +723,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             arrowTopicRightGreen.Apply(false);
             arrowTopicRightGreen.filterMode = DaggerfallUI.Instance.GlobalFilterMode;
 
-            // Cut out red up/down arrows (conversation)           
+            // Cut out red up/down arrows (conversation)
             arrowConversationUpRed = ImageReader.GetSubTexture(redArrowsTexture, upArrowRectInSrcImg, arrowsFullSize);
             arrowConversationDownRed = ImageReader.GetSubTexture(redArrowsTexture, downArrowRectInSrcImg, arrowsFullSize);
 
@@ -753,7 +751,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             SetupButtons();
             SetupCheckboxes();
             SetupScrollBars();
-            SetupScrollButtons();                                   
+            SetupScrollButtons();
 
             SetTalkModeWhereIs();
             SetTalkModeTellMeAbout();
@@ -909,7 +907,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             verticalScrollBarConversation.Position = new Vector2(305, 81);
             verticalScrollBarConversation.Size = new Vector2(5, 94);
             verticalScrollBarConversation.OnScroll += VerticalScrollBarConversation_OnScroll;
-            NativePanel.Components.Add(verticalScrollBarConversation);         
+            NativePanel.Components.Add(verticalScrollBarConversation);
         }
 
         protected virtual void SetupScrollButtons()
@@ -991,7 +989,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             listCurrentTopics = listTopic;
 
-            listboxTopic.ClearItems();            
+            listboxTopic.ClearItems();
             for (int i = 0; i < listTopic.Count; i++)
             {
                 TalkManager.ListItem item = listTopic[i];
@@ -1026,10 +1024,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             //lengthOfLongestItemInListBox = listboxTopic.LengthOfLongestItem();
             widthOfLongestItemInListBox = listboxTopic.WidthContent();
 
-            // update listboxTopic.MaxHorizontalScrollIndex            
+            // update listboxTopic.MaxHorizontalScrollIndex
             //listboxTopic.MaxHorizontalScrollIndex = Math.Max(0, lengthOfLongestItemInListBox - maxNumCharactersOfTopicShown);
             listboxTopic.MaxHorizontalScrollIndex = Math.Max(0, widthOfLongestItemInListBox - (int)listboxTopic.Size.x);
-            
+
             listboxTopic.Update();
             UpdateScrollBarsTopic();
             UpdateScrollButtonsTopic();
@@ -1142,7 +1140,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return caption.ToLower().StartsWith("the ") ? caption.Substring(4) : caption;
             }
 
-            baseTopics.Sort((item1, item2) => 
+            baseTopics.Sort((item1, item2) =>
                 string.Compare(RemoveThePrefix(item1.ListItem.caption), RemoveThePrefix(item2.ListItem.caption), StringComparison.OrdinalIgnoreCase));
 
             // Use the filtered list to set the topics in your list box
@@ -1679,7 +1677,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             ListBox.ListItem textLabelAnswer;
             listboxConversation.AddItem(question, out textLabelQuestion);
             textLabelQuestion.textColor = DaggerfallUI.DaggerfallQuestionTextColor;
-            textLabelQuestion.selectedTextColor = textcolorHighlighted; // textcolorQuestionHighlighted            
+            textLabelQuestion.selectedTextColor = textcolorHighlighted; // textcolorQuestionHighlighted
             textLabelQuestion.textLabel.HorizontalAlignment = HorizontalAlignment.Right;
             textLabelQuestion.textLabel.HorizontalTextAlignment = TextLabel.HorizontalTextAlignmentSetting.Left;
             //textLabelQuestion.textLabel.BackgroundColor = new Color(0.3f, 0.4f, 0.9f);
@@ -1690,7 +1688,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 textLabelQuestion.textLabel.BackgroundColor = textcolorQuestionBackgroundModernConversationStyle;
             }
             listboxConversation.AddItem(answer, out textLabelAnswer);
-            textLabelAnswer.selectedTextColor = textcolorHighlighted;            
+            textLabelAnswer.selectedTextColor = textcolorHighlighted;
             textLabelAnswer.textLabel.HorizontalAlignment = HorizontalAlignment.Left;
             textLabelAnswer.textLabel.HorizontalTextAlignment = TextLabel.HorizontalTextAlignmentSetting.Left;
             //textLabelAnswer.textLabel.BackgroundColor = new Color(0.4f, 0.3f, 0.9f);
@@ -1777,10 +1775,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     currentNumAnswersGivenDialogue = 0; // No data means no answers have been given yet
                 }
 
-                if (listItem.questionType == TalkManager.QuestionType.News) 
+                if (listItem.questionType == TalkManager.QuestionType.News)
                 {
                     answer = TalkManager.Instance.GetNewsOrRumors(); // Handle news or rumors
-                } 
+                }
                 else
                 {
                     // Check if this ListItem has a DialogueListItem wrapper
@@ -1957,6 +1955,27 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         filterVariables["Faction Guild Group"] = factionData.ggroup;
                         filterVariables["Faction Vampire"] = factionData.vam;
                         filterVariables["Faction Children"] = factionData.children;
+
+                        filterVariables["NPC NoLore"] = 0; // Default or other values not specified
+
+                        // Set NPC NoLore based on Faction ID for children
+                        if (npcData.factionID == 514)
+                        {
+                            filterVariables["NPC NoLore"] = 1;
+                        }
+                        else
+                        {
+                            // Set NPC NoLore based on Faction Type
+                            int factionType = factionData.type;
+                            if (new int[] { 2, 3, 5, 6, 8, 9, 10, 13 }.Contains(factionType))
+                            {
+                                filterVariables["NPC NoLore"] = 2;
+                            }
+                            else if (new int[] { 0, 1, 4 }.Contains(factionType))
+                            {
+                                filterVariables["NPC NoLore"] = 3;
+                            }
+                        }
                     }
                 }
             }
@@ -1974,6 +1993,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     filterVariables["Is Guard"] = mobileNpc.IsGuard;
                     filterVariables["NPC Outfit Variant"] = mobileNpc.PersonOutfitVariant;
                     filterVariables["Faction Social Group"] = 1;
+                    filterVariables["NPC NoLore"] = 0;  // Default or other values not specified
                 }
             }
             else
@@ -2126,13 +2146,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
 
             // Get NPC faction data and reactions
-            FactionFile.FactionData npcFactionData = GetFactionData(); // Renamed variable to avoid conflict
-            reactionToPlayer = GetReactionToPlayer(npcFactionData); // Use the renamed variable
-            FactionFile.SocialGroups npcSocialGroup = (FactionFile.SocialGroups)npcFactionData.sgroup; // Use the renamed variable
-            reactionToPlayer_0_1_2 = GetReactionToPlayer_0_1_2(npcSocialGroup); // Use the renamed variable
-
-            totalReactionToPlayer = reactionToPlayer + reactionToPlayer_0_1_2;
-            filterVariables["NPC Reaction"] = totalReactionToPlayer;
+            GetTotalReactionToPlayer();
 
             // Log all filterVariables, only if ADDialogue.AD_Log is enabled
             if (ADDialogue.AD_Log)
@@ -2163,6 +2177,27 @@ namespace DaggerfallWorkshop.Game.UserInterface
             return factionData;  // Return either found data or default
         }
 
+        public void GetTotalReactionToPlayer()
+        {
+            // Get NPC faction data and reactions
+            FactionFile.FactionData npcFactionData = GetFactionData(); // Retrieve the NPC's faction data
+            int reactionToPlayer = GetReactionToPlayer(npcFactionData); // Calculate reaction based on player's attributes and NPC's faction
+            FactionFile.SocialGroups npcSocialGroup = (FactionFile.SocialGroups)npcFactionData.sgroup; // Retrieve the social group of the NPC
+            int reactionToPlayer_0_1_2 = GetReactionToPlayer_0_1_2(npcSocialGroup); // Calculate reaction based on social group and tone
+
+            int totalReactionToPlayer = reactionToPlayer + reactionToPlayer_0_1_2; // Sum up all reactions
+            filterVariables["NPC Reaction"] = totalReactionToPlayer; // Store the total reaction in the filter variables
+            int npcNoLore = Convert.ToInt32(filterVariables["NPC NoLore"]);
+
+            maxNumAnswersNpcGivesDialogue = 1 + totalReactionToPlayer + npcNoLore;
+
+            // Log the reaction, if debugging is enabled
+            if (ADDialogue.AD_Log)
+            {
+                Debug.LogFormat("Total NPC Reaction: {0}", totalReactionToPlayer);
+            }
+        }
+
         public int GetReactionToPlayer(FactionFile.FactionData factionData)
         {
             PlayerEntity player = GameManager.Instance.PlayerEntity;
@@ -2171,8 +2206,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             if (factionData.sgroup >= 0 && factionData.sgroup < player.SGroupReputations.Length)
                 reaction += player.SGroupReputations[factionData.sgroup];
-
-            Debug.Log($"GetReactionToPlayer: Returning reaction value of {reaction}");
+            // Log the reaction, if debugging is enabled
+            if (ADDialogue.AD_Log)
+            {
+                Debug.Log($"GetReactionToPlayer: Returning reaction value of {reaction}");
+            }
             return reaction;
         }
 
@@ -2239,7 +2277,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             else
                 result = 2;
 
-            Debug.Log($"GetReactionToPlayer_0_1_2: Returning reaction category of {result}");
+            if (ADDialogue.AD_Log)
+            {
+                Debug.Log($"GetReactionToPlayer_0_1_2: Returning reaction category of {result}");
+            }
     return result;
         }
 
@@ -2298,7 +2339,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Update scroller
             verticalScrollBarConversation.TotalUnits = listboxConversation.HeightContent();
             int scrollIndex = GetSafeScrollIndex(verticalScrollBarConversation);
-            
+
             // Update scroller buttons
             UpdateListConversationScrollerButtons(verticalScrollBarConversation, scrollIndex, listboxConversation.HeightContent(), buttonConversationUp, buttonConversationDown);
 
@@ -2435,6 +2476,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             toneLastUsed = TalkToneToIndex(selectedTalkTone);
             UpdateCheckboxes();
             UpdateQuestion(listboxTopic.SelectedIndex);
+            GetTotalReactionToPlayer();
         }
 
         protected virtual void ButtonToneNormal_OnClickHandler(BaseScreenComponent sender, Vector2 position)
@@ -2446,6 +2488,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             toneLastUsed = TalkToneToIndex(selectedTalkTone);
             UpdateCheckboxes();
             UpdateQuestion(listboxTopic.SelectedIndex);
+            GetTotalReactionToPlayer();
         }
 
         protected virtual void ButtonToneBlunt_OnClickHandler(BaseScreenComponent sender, Vector2 position)
@@ -2457,6 +2500,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             toneLastUsed = TalkToneToIndex(selectedTalkTone);
             UpdateCheckboxes();
             UpdateQuestion(listboxTopic.SelectedIndex);
+            GetTotalReactionToPlayer();
         }
 
         protected virtual void ButtonOkay_OnMouseClick(BaseScreenComponent sender, Vector2 position)
