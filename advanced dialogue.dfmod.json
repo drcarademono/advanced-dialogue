@@ -3,8 +3,8 @@
     "ModVersion": "0.0.1",
     "ModAuthor": "carademono",
     "ContactInfo": "Lysandus' Tomb Discord",
-    "DFUnity_Version": "1.0.0",
-    "ModDescription": "Filter-based NPC dialogue for World of Daggerfall",
+    "DFUnity_Version": "1.1.1",
+    "ModDescription": "Filter-based NPC dialogue for Daggerfall Unity",
     "GUID": "8edbf196-dacf-4fad-ba2f-e8b54d36b154",
     "Files": [
         "Assets/Game/Mods/advanced-dialogue/Dialogue/Dialogue.csv",

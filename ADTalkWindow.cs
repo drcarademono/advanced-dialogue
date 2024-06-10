@@ -2157,6 +2157,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Get NPC faction data and reactions
             GetTotalReactionToPlayer();
 
+            // Generate a random number for the NPC
+            System.Random random = new System.Random();
+            int randomNumber = random.Next(1, 101); // Random number between 1 and 100
+            filterVariables["Random Number (NPC)"] = randomNumber;
+
             // Log all filterVariables, only if ADDialogue.AD_Log is enabled
             if (ADDialogue.AD_Log)
             {
@@ -2215,12 +2220,17 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             if (factionData.sgroup >= 0 && factionData.sgroup < player.SGroupReputations.Length)
                 reaction += player.SGroupReputations[factionData.sgroup];
+
+            // Divide reaction by 10 and round down to the next integer
+            int adjustedReaction = (int)Math.Floor(reaction / 10.0);
+
             // Log the reaction, if debugging is enabled
             if (ADDialogue.AD_Log)
             {
-                Debug.Log($"GetReactionToPlayer: Returning reaction value of {reaction}");
+                Debug.Log($"GetReactionToPlayer: Original reaction value: {reaction}, Adjusted reaction value: {adjustedReaction}");
             }
-            return reaction;
+
+            return adjustedReaction;
         }
 
         int GetReactionToPlayer_0_1_2(FactionFile.SocialGroups npcSocialGroup)
