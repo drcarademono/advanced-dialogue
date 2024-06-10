@@ -1154,16 +1154,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
         private bool EvaluateConditions(DialogueListItem item)
         {
             System.Random random = new System.Random(); // Initialize a random number generator
+            bool npcNoLoreConditionFound = false; // Flag to check if a specific NPC NoLore condition is set
 
             // Loop through each condition set (C1, C2, C3)
             for (int i = 1; i <= 3; i++)
             {
-                // Construct the keys for the current condition set
                 string cVariable = $"C{i}_Variable";
                 string cComparison = $"C{i}_Comparison";
                 string cValue = $"C{i}_Value";
 
-                // If any of the condition keys don't exist or are empty, skip this condition set
                 if (!item.DialogueData.ContainsKey(cVariable) ||
                     !item.DialogueData.ContainsKey(cComparison) ||
                     !item.DialogueData.ContainsKey(cValue) ||
@@ -1174,71 +1173,82 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     continue;
                 }
 
-                // Retrieve values from dialogue data
                 string variableName = item.DialogueData[cVariable] as string;
                 string comparisonOperator = item.DialogueData[cComparison] as string;
                 string valueToCompare = item.DialogueData[cValue] as string;
 
-                object variableValue;
-                // Generate a random number for each "Random Number" condition
-                if (variableName == "Random Number")
+                if (variableName == "NPC NoLore")
                 {
-                    variableValue = random.Next(1, 101); // Generate a random number from 1 to 100
-                }
-                else if (!filterVariables.TryGetValue(variableName, out variableValue))
-                {
-                    // If the variable is not found in filterVariables, do not show the item
-                    Debug.LogError($"Variable '{variableName}' not found in filterVariables.");
-                    return false;
+                    npcNoLoreConditionFound = true;
                 }
 
-                // Perform comparison based on the operator
-                string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
-                bool conditionMet = false;
-                switch (comparisonOperator)
+                if (!EvaluateSingleCondition(variableName, comparisonOperator, valueToCompare, random))
                 {
-                    case "==":
-                        // Check if any value matches the variable value as string
-                        conditionMet = valuesToCompare.Any(v => v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
-                        break;
-                    case "!=":
-                        // Check if all values do not match the variable value as string
-                        conditionMet = valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
-                        break;
-                    case "<":
-                    case ">":
-                    case "<=":
-                    case ">=":
-                        // Ensure both variableValue and valueToCompare are integers for numeric comparisons
-                        if (int.TryParse(variableValue.ToString(), out int intVariableValue) &&
-                            valuesToCompare.All(v => int.TryParse(v, out int intValue)))
-                        {
-                            conditionMet = valuesToCompare.All(v => EvaluateNumericComparison(intVariableValue, int.Parse(v), comparisonOperator));
-                        }
-                        else
-                        {
-                            Debug.LogError($"Cannot perform numeric comparison on non-integer variable '{variableName}' or value '{valueToCompare}'.");
-                            return false;
-                        }
-                        break;
-                    default:
-                        // Log error for unknown operators
-                        Debug.LogError($"Unknown comparison operator '{comparisonOperator}'.");
-                        return false; // Unknown operator, do not show item
-                }
-
-                // If the condition has not been met, do not show the item
-                if (!conditionMet)
                     return false;
+                }
             }
 
-            // If all conditions are met or skipped, show the item
-            return true;
+            // If no specific NPC NoLore condition has been set, enforce the default condition
+            if (!npcNoLoreConditionFound)
+            {
+                if (!EvaluateSingleCondition("NPC NoLore", "==", "0|2", random))
+                {
+                    return false;
+                }
+            }
+
+            return true; // If all conditions are met
+        }
+
+        private bool EvaluateSingleCondition(string variableName, string comparisonOperator, string valueToCompare, System.Random random)
+        {
+            object variableValue;
+            if (variableName == "Random Number")
+            {
+                variableValue = random.Next(1, 101); // Generate a random number from 1 to 100
+            }
+            else if (!filterVariables.TryGetValue(variableName, out variableValue))
+            {
+                Debug.LogError($"Variable '{variableName}' not found in filterVariables.");
+                return false;
+            }
+
+            string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
+            switch (comparisonOperator)
+            {
+                case "==":
+                    return valuesToCompare.Any(v => v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                case "!=":
+                    return valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                case "<":
+                case ">":
+                case "<=":
+                case ">=":
+                    if (int.TryParse(variableValue.ToString(), out int intVariableValue))
+                    {
+                        return valuesToCompare.All(v =>
+                        {
+                            if (int.TryParse(v, out int intValue))
+                            {
+                                return EvaluateNumericComparison(intVariableValue, intValue, comparisonOperator);
+                            }
+                            Debug.LogError($"Cannot perform numeric comparison because '{v}' is not an integer.");
+                            return false;
+                        });
+                    }
+                    else
+                    {
+                        Debug.LogError($"Cannot perform numeric comparison on non-integer variable '{variableName}' value '{variableValue}'.");
+                        return false;
+                    }
+                default:
+                    Debug.LogError($"Unknown comparison operator '{comparisonOperator}'.");
+                    return false; // Unknown operator, fail the condition
+            }
         }
 
         private bool EvaluateNumericComparison(int variableValue, int comparisonValue, string comparisonOperator)
         {
-            // Perform comparison based on the operator
             switch (comparisonOperator)
             {
                 case "<":
@@ -1250,7 +1260,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 case ">=":
                     return variableValue >= comparisonValue;
                 default:
-                    // Handle unexpected comparison operator
                     throw new ArgumentException($"Invalid comparison operator: {comparisonOperator}");
             }
         }
@@ -1940,6 +1949,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     filterVariables["NPC Name"] = staticNpc.DisplayName;
                     filterVariables["Is Child NPC"] = staticNpc.IsChildNPC;
 
+                    filterVariables["NPC NoLore"] = 0; // Default or other values not specified
+
                     // Store faction details if available
                     if (persistentFactionData.GetFactionData(npcData.factionID, out factionData))
                     {
@@ -1955,8 +1966,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         filterVariables["Faction Guild Group"] = factionData.ggroup;
                         filterVariables["Faction Vampire"] = factionData.vam;
                         filterVariables["Faction Children"] = factionData.children;
-
-                        filterVariables["NPC NoLore"] = 0; // Default or other values not specified
 
                         // Set NPC NoLore based on Faction ID for children
                         if (npcData.factionID == 514)
