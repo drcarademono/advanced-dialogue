@@ -1,6 +1,6 @@
 {
     "ModTitle": "Advanced Dialogue",
-    "ModVersion": "0.0.1",
+    "ModVersion": "0.1.1",
     "ModAuthor": "carademono",
     "ContactInfo": "Lysandus' Tomb Discord",
     "DFUnity_Version": "1.1.1",
@@ -12,5 +12,17 @@
         "Assets/Game/Mods/advanced-dialogue/ADTalkWindow.cs",
         "Assets/Game/Mods/advanced-dialogue/ADSaveDataHandler.cs",
         "Assets/Game/Mods/advanced-dialogue/advanced dialogue.dfmod.json"
+    ],
+    "Dependencies": [
+        {
+            "Name": "hidden map locations",
+            "IsOptional": true,
+            "IsPeer": false
+        },
+        {
+            "Name": "uncannyui",
+            "IsOptional": true,
+            "IsPeer": false
+        }
     ]
 }

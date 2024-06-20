@@ -2064,7 +2064,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             filterVariables["Current Politic Index"] = playerGPS.CurrentPoliticIndex;
             filterVariables["Current Region Index"] = playerGPS.CurrentRegionIndex;
             filterVariables["Current Location Index"] = playerGPS.CurrentLocationIndex;
-            filterVariables["Current Map ID"] = playerGPS.CurrentMapID;
+            filterVariables["Current MapID"] = playerGPS.CurrentMapID;
             filterVariables["Has Current Location"] = playerGPS.HasCurrentLocation;
             filterVariables["Is Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
             filterVariables["Current Region"] = playerGPS.CurrentRegion;
