@@ -1895,6 +1895,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         }
 
                         // Fetch the answer using the vanilla method
+                        if (selectedTalkOption == TalkOption.TellMeAbout) {
+                            SetTalkModeWhereIs(); // Apparently regular TalkWindow runs in the background fighting to control the dialogue, so we have to "reset" the window here
+                            SetTalkModeTellMeAbout();
+                        }
                         answer = TalkManager.Instance.GetAnswerText(listItem);
                     }
                 }
