@@ -1191,7 +1191,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // If no specific NPC NoLore condition has been set, enforce the default condition
             if (!npcNoLoreConditionFound)
             {
-                if (!EvaluateSingleCondition("NPC NoLore", "==", "0|2", random))
+                if (!EvaluateSingleCondition("NPC NoLore", "==", "0", random))
                 {
                     return false;
                 }
@@ -1878,17 +1878,42 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     else
                     {
                         // Check if the question is about the player's current location
-                        if (listItem.questionType == TalkManager.QuestionType.WhereAmI) {
-                            // Ensure the current NPC Type is Mobile
-                            if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Mobile) {
-                                if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName)) {
+                        if (listItem.questionType == TalkManager.QuestionType.WhereAmI)
+                        {
+                            // Check if the NPC is in a building using filterVariables
+                            if (filterVariables.TryGetValue("NPC In Building", out object isInBuilding) && (int)isInBuilding == 1)
+                            {
+                                // NPC is inside a building, get the building name
+                                if (filterVariables.TryGetValue("NPC Building Name", out object buildingName))
+                                {
+                                    // Convert the building name to lowercase and add it to knownCaptions
+                                    string buildingNameToAdd = buildingName.ToString().ToLower();
+                                    if (!knownCaptions.Contains(buildingNameToAdd))
+                                    {
+                                        knownCaptions.Add(buildingNameToAdd);
+                                        topicsUpdated = true;
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.LogError("NPC Building Name not found in filterVariables.");
+                                }
+                            }
+                            else
+                            {
+                                // NPC is not in a building, get the region name instead
+                                if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName))
+                                {
                                     // Convert the region name to lowercase and add it to knownCaptions
                                     string regionNameToAdd = currentRegionName.ToString().ToLower();
-                                    if (!knownCaptions.Contains(regionNameToAdd)) {
+                                    if (!knownCaptions.Contains(regionNameToAdd))
+                                    {
                                         knownCaptions.Add(regionNameToAdd);
                                         topicsUpdated = true;
                                     }
-                                } else {
+                                }
+                                else
+                                {
                                     Debug.LogError("Current Region Name not found in filterVariables.");
                                 }
                             }
@@ -1946,6 +1971,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     filterVariables["NPC Context"] = npcData.context;
                     filterVariables["NPC Map ID"] = npcData.mapID;
                     filterVariables["NPC Location ID"] = npcData.locationID;
+                    // Check if the NPC is inside a building
+                    if (GameManager.Instance.IsPlayerInside && GameManager.Instance.PlayerEnterExit.ExteriorDoors.Length > 0)
+                    {
+                        filterVariables["NPC In Building"] = 1; // NPC is inside a building
+
+                        // Try to get the discovered building data
+                        PlayerGPS.DiscoveredBuilding discoveredBuilding;
+                        if (GameManager.Instance.PlayerGPS.GetAnyBuilding(GameManager.Instance.PlayerEnterExit.ExteriorDoors[0].buildingKey, out discoveredBuilding))
+                        {
+                            filterVariables["NPC Building Name"] = discoveredBuilding.displayName;
+                        }
+                        else
+                        {
+                            // Fallback to a default building name if no discovered building is found
+                            filterVariables["NPC Building Name"] = "Unknown Building"; // Default value if no building name can be retrieved
+                        }
+                    }
+                    else
+                    {
+                        filterVariables["NPC In Building"] = 0; // NPC is not inside a building
+                        filterVariables["NPC Building Name"] = "Outside"; // Default value if outside
+                    }
                     filterVariables["NPC Building Key"] = npcData.buildingKey;
                     filterVariables["NPC Name Bank"] = npcData.nameBank;
                     filterVariables["NPC Billboard Archive Index"] = npcData.billboardArchiveIndex;
