@@ -59,7 +59,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         }
 
         // Static property for known captions
-        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?" };
+        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?", "who are you?" };
 
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
 
@@ -122,6 +122,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         public int currentNumAnswersGivenDialogue = 0;
 
         private bool isFirstAdviceRequest = true;
+        private bool isFirstWhoAreYouRequest = true;
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -371,6 +372,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             toneLastUsed = -1;
             currentQuestion = "";
             isFirstAdviceRequest = true;
+            isFirstWhoAreYouRequest = true;
 
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
             GetFilterData();
@@ -1663,6 +1665,33 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         // Select a random advice question from the variants
                         currentQuestion = adviceVariants[UnityEngine.Random.Range(0, adviceVariants.Length)];
                     }
+
+                }
+                else if (listItem.caption.Equals("Who are you?", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (isFirstWhoAreYouRequest)
+                    {
+                        string[] firstWhoAreYouVariants = {
+                            "Good day, stranger. Who might you be?",
+                            "Greetings. Who do I have the pleasure of speaking with?",
+                            "Hello, mate. Tell me a bit about yourself."
+                        };
+
+                        // Select a random advice question from the variants
+                        currentQuestion = firstWhoAreYouVariants[UnityEngine.Random.Range(0, firstWhoAreYouVariants.Length)];
+                    }
+                    else
+                    {
+                        string[] whoAreYouVariants = {
+                            "Hmm. Can you tell me a bit about yourself?",
+                            "I see. And who are you, exactly?",
+                            "Interesting. Can you tell me about yourself?"
+                        };
+
+                        // Select a random advice question from the variants
+                        currentQuestion = whoAreYouVariants[UnityEngine.Random.Range(0, whoAreYouVariants.Length)];
+                    }
+
                 }
                 else
                 {
@@ -1713,6 +1742,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             UpdateScrollBarConversation();
             UpdateScrollButtonsConversation();
             isFirstAdviceRequest = false; // Update the flag as advice has now been requested
+            isFirstWhoAreYouRequest = false; // Update the flag as advice has now been requested
         }
 
         protected virtual void SelectTopicFromTopicList(int index, bool forceExecution = false)
@@ -1805,6 +1835,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Check if the caption is "Any advice?" and replace it with "advice" in the response
                             string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
 
+                            // Check if the caption is "Who are you?" and replace it with "myself" in the response
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "who are you?" ? "myself" : dialogueItem.ListItem.caption;
+
                             // Replace [caption] with the modified caption
                             responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
 
@@ -1818,6 +1851,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
                             // Check if the caption is "Any advice?" and replace it with "advice" in the response
                             string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
+
+                            // Check if the caption is "Who are you?" and replace it with "myself" in the response
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "who are you?" ? "myself" : dialogueItem.ListItem.caption;
 
                             // Replace [caption] with the modified caption
                             responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
