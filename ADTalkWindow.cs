@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Formulas;
 using DaggerfallWorkshop.Game.Items;
@@ -74,7 +75,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             "Are you soft in the head, %ra? We already discussed [caption].",
             "Let's not beat a dead horse, %ra. Move on from [caption].",
             "Do you have the memory of a goldfish? We just went over [caption].",
-            "Drop it, %ra. [caption] is old news.",
+            "Drop it, %ra. I'm done talking about [caption].",
             "Seriously, %ra? That again? Find someone else to bother."
         };
 
@@ -82,7 +83,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         string[] exceededMaxResponses = new string[]
         {
             "I think you've wasted enough of my time, %ra.",
-            "Go pester someone else about [caption].",
+            "Go pester someone else about that.",
             "If you'll excuse me, I've got other things to do.",
             "Enough, %ra! My patience is thin and you've just run out.",
             "Our chat ends now, %ra. You're becoming a nuisance.",
@@ -374,8 +375,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             isFirstAdviceRequest = true;
             isFirstWhoAreYouRequest = true;
 
-            LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
             GetFilterData();
+            LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
 
             RemoveNumAnswersGivenForNPC();
 
@@ -1327,10 +1328,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             try
             {
-                // Convert string to RSC tokens using the new approach
+                // Regex pattern to find macros like %Some Variable% and preserve spaces
+                answer = Regex.Replace(answer, @"%([^%]+)%", match =>
+                {
+                    string macroKey = match.Groups[1].Value.Trim(); // Get the text inside % % and trim spaces
+
+                    // Check if the macro exists in filterVariables
+                    if (filterVariables.TryGetValue(macroKey, out object macroValue))
+                    {
+                        return macroValue.ToString();
+                    }
+                    else
+                    {
+                        // Log a warning if the macro is not found in filterVariables
+                        //Debug.LogWarning($"Macro '{macroKey}' not found in filterVariables");
+                        return $"[{macroKey}]"; // Return the macro name wrapped in [] if not found
+                    }
+                });
+
+                // Now proceed with the standard macro expansion after custom macros are handled
                 TextFile.Token[] tokens = DaggerfallStringTableImporter.ConvertStringToRSCTokens(answer);
 
-                // Expand macros within the tokens
+                // Expand standard macros within the tokens
                 MacroHelper.ExpandMacros(ref tokens, mcp);
 
                 // Convert tokens back to a single string
@@ -1354,6 +1373,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 Debug.LogError($"Error processing macros for line {lineNumber} in CSV: {ex.Message}");
                 return "Error in macro expansion"; // You may choose to return a default error message
             }
+        }
+
+        // Helper method to replace filterVariables macros in the text
+        private string ReplaceFilterVariableMacros(string text)
+        {
+            // Regex pattern to find %VariableName% macros
+            var macroPattern = new Regex("%(.*?)%");
+            return macroPattern.Replace(text, match =>
+            {
+                string variableName = match.Groups[1].Value;
+                if (filterVariables.ContainsKey(variableName))
+                {
+                    // Return the value from filterVariables
+                    return filterVariables[variableName]?.ToString() ?? "";
+                }
+                else
+                {
+                    // If the variable is not found, return the original macro unchanged
+                    //Debug.LogWarning($"Macro '{variableName}' not found in filterVariables.");
+                    return match.Value;
+                }
+            });
         }
 
         protected virtual void SetTalkModeWhereIs()
@@ -1832,11 +1873,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Select a random response template
                             string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
 
-                            // Check if the caption is "Any advice?" and replace it with "advice" in the response
-                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
-
-                            // Check if the caption is "Who are you?" and replace it with "myself" in the response
-                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "who are you?" ? "myself" : dialogueItem.ListItem.caption;
+                            // Check if the caption is "Any advice?" or "Who are you?" and replace accordingly
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" 
+                                ? "advice" 
+                                : dialogueItem.ListItem.caption.ToLower() == "who are you?" 
+                                ? "me" 
+                                : dialogueItem.ListItem.caption;
 
                             // Replace [caption] with the modified caption
                             responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
@@ -1849,11 +1891,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Select a random response template
                             string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
 
-                            // Check if the caption is "Any advice?" and replace it with "advice" in the response
-                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" ? "advice" : dialogueItem.ListItem.caption;
-
-                            // Check if the caption is "Who are you?" and replace it with "myself" in the response
-                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "who are you?" ? "myself" : dialogueItem.ListItem.caption;
+                            // Check if the caption is "Any advice?" or "Who are you?" and replace accordingly
+                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" 
+                                ? "advice" 
+                                : dialogueItem.ListItem.caption.ToLower() == "who are you?" 
+                                ? "me" 
+                                : dialogueItem.ListItem.caption;
 
                             // Replace [caption] with the modified caption
                             responseTemplate = responseTemplate.Replace("[caption]", modifiedCaption);
