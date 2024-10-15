@@ -60,7 +60,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         }
 
         // Static property for known captions
-        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?", "who are you?" };
+        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?", "who are you?", "buy an ale" };
 
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
 
@@ -124,6 +124,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         private bool isFirstAdviceRequest = true;
         private bool isFirstWhoAreYouRequest = true;
+        private bool isFirstBuyAleRequest = true;
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -374,7 +375,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
             currentQuestion = "";
             isFirstAdviceRequest = true;
             isFirstWhoAreYouRequest = true;
+            isFirstBuyAleRequest = true;
 
+            InitializeKnownCaptions();
             GetFilterData();
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
 
@@ -1118,6 +1121,21 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 UpdateTellMeAboutTopics();  // Call the refactored method to set topics
         }
 
+        public void InitializeKnownCaptions()
+        {
+            // List of required captions
+            List<string> requiredCaptions = new List<string> { "any advice?", "buy an ale", "who are you?" };
+
+            // Check if each required caption is already in knownCaptions, if not, add it
+            foreach (string caption in requiredCaptions)
+            {
+                if (!knownCaptions.Contains(caption))
+                {
+                    knownCaptions.Add(caption);
+                }
+            }
+        }
+
         protected virtual void UpdateTellMeAboutTopics()
         {
             // Create a new list to hold the merged topics
@@ -1212,7 +1230,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
             else if (!filterVariables.TryGetValue(variableName, out variableValue))
             {
-                Debug.LogError($"Variable '{variableName}' not found in filterVariables.");
+                Debug.Log($"Variable '{variableName}' not found in filterVariables.");
                 return false;
             }
 
@@ -1708,6 +1726,32 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     }
 
                 }
+                else if (listItem.caption.Equals("Buy an ale", StringComparison.OrdinalIgnoreCase))
+
+                    if (isFirstBuyAleRequest)
+                    {
+                        // First time asking to buy an ale
+                        string[] firstBuyAleVariants = {
+                        "Good day, friend. Could I buy you a pint?",
+                        "Greetings! How about I buy you an ale?",
+                        "Hello there. Let me treat you to a drink."
+                    };
+
+                    // Select a random "first time" question from the variants
+                    currentQuestion = firstBuyAleVariants[UnityEngine.Random.Range(0, firstBuyAleVariants.Length)];
+                    }
+                    else
+                    {
+                        // Subsequent times asking to buy an ale
+                        string[] buyAleVariants = {
+                        "Hmm. Fancy another ale on me?",
+                        "I see. How about I buy you another round?",
+                        "Interesting. Care for another pint, my friend?"
+                    };
+
+                    // Select a random "subsequent" question from the variants
+                    currentQuestion = buyAleVariants[UnityEngine.Random.Range(0, buyAleVariants.Length)];
+                }
                 else if (listItem.caption.Equals("Who are you?", StringComparison.OrdinalIgnoreCase))
                 {
                     if (isFirstWhoAreYouRequest)
@@ -1732,7 +1776,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         // Select a random advice question from the variants
                         currentQuestion = whoAreYouVariants[UnityEngine.Random.Range(0, whoAreYouVariants.Length)];
                     }
-
                 }
                 else
                 {
@@ -1782,8 +1825,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             UpdateScrollBarConversation();
             UpdateScrollButtonsConversation();
-            isFirstAdviceRequest = false; // Update the flag as advice has now been requested
-            isFirstWhoAreYouRequest = false; // Update the flag as advice has now been requested
+            isFirstAdviceRequest = false;
+            isFirstWhoAreYouRequest = false;
+            isFirstBuyAleRequest = false;
         }
 
         protected virtual void SelectTopicFromTopicList(int index, bool forceExecution = false)
@@ -1867,8 +1911,45 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     {
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
+                        if (listItem.caption.Equals("Buy an ale", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Step 1: Get the NPC Name from filterVariables
+                            string aleNpcName = "your interlocutor";  // Default value if NPC name is not found
+                            if (filterVariables.ContainsKey("NPC Name"))
+                            {
+                                aleNpcName = filterVariables["NPC Name"] as string;
+                            }
+
+                            // Step 2: Calculate ale price (this mimics the tavern's ale price)
+                            int alePrice = 1;  // You can set this to the desired price, or fetch it dynamically
+                            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
+
+                            // Step 3: Check if the player has enough gold
+                            if (playerEntity.GetGoldAmount() < alePrice)
+                            {
+                                DaggerfallUI.MessageBox("You don't have enough gold.");
+                                return;
+                            }
+
+                            // Subtract the ale price from the player's gold
+                            playerEntity.DeductGoldAmount(alePrice);
+
+                            // Step 4: Increase maxNumAnswersNpcGivesDialogue by 3 after buying an ale for the NPC
+                            maxNumAnswersNpcGivesDialogue += 3;
+
+                            // Step 5: Show a message confirming the purchase with the NPC's name and the price of the ale
+                            DaggerfallUI.MessageBox($"You bought an ale for {aleNpcName} for {alePrice} gold.");
+
+                            // Fetch the answer from the DialogueData
+                            string answerData = dialogueItem.DialogueData["Answer"] as string;
+
+                            // Split the answer into possible responses if it contains '|'
+                            string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                            int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
+                            answer = possibleAnswers[selectedIndex].Trim();
+                        }
                         // Check if the caption has been responded to before
-                        if (!ADDialogue.AD_Log && respondedCaptions.Contains(captionLower))
+                        else if (!ADDialogue.AD_Log && respondedCaptions.Contains(captionLower))
                         {
                             // Select a random response template
                             string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
@@ -1918,7 +1999,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             respondedCaptions.Add(captionLower);
                             currentNumAnswersGivenDialogue++;
                             numAnswersGivenDialogue[npcName] = (currentNumAnswersGivenDialogue, currentDayOfYear);
-
 
                             // Process AddCaption if it exists and only if the conditions are met
                             if (dialogueItem.DialogueData.ContainsKey("AddCaption"))
@@ -1975,7 +2055,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 }
                                 else
                                 {
-                                    Debug.LogError("NPC Building Name not found in filterVariables.");
+                                    Debug.Log("NPC Building Name not found in filterVariables.");
                                 }
                             }
                             else
@@ -1993,7 +2073,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 }
                                 else
                                 {
-                                    Debug.LogError("Current Region Name not found in filterVariables.");
+                                    Debug.Log("Current Region Name not found in filterVariables.");
                                 }
                             }
                         }
@@ -2060,6 +2140,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         if (GameManager.Instance.PlayerGPS.GetAnyBuilding(GameManager.Instance.PlayerEnterExit.ExteriorDoors[0].buildingKey, out discoveredBuilding))
                         {
                             filterVariables["NPC Building Name"] = discoveredBuilding.displayName;
+                            filterVariables["NPC Building Type"] = discoveredBuilding.buildingType;
+                            //filterVariables["NPC Building FactionID"] = discoveredBuilding.factionId;
                         }
                         else
                         {
@@ -2201,6 +2283,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             filterVariables["Current Region Name"] = playerGPS.CurrentRegionName;
             filterVariables["Current Climate Settings"] = playerGPS.ClimateSettings;
             filterVariables["Current Location"] = playerGPS.CurrentLocation;
+            filterVariables["Current Location Name"] = playerGPS.CurrentLocation.Name;
             filterVariables["Current Location Type"] = playerGPS.CurrentLocationType;
 
             // Utility Methods of PlayerGPS
