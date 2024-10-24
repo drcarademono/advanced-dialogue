@@ -60,7 +60,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         }
 
         // Static property for known captions
-        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?", "who are you?", "buy an ale" };
+        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?", "who are you?", "buy an ale", "buy a beer" };
 
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
 
@@ -125,6 +125,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         private bool isFirstAdviceRequest = true;
         private bool isFirstWhoAreYouRequest = true;
         private bool isFirstBuyAleRequest = true;
+        private bool isFirstBuyBeerRequest = true;
 
         protected const string talkWindowImgName    = "TALK01I0.IMG";
         protected const string talkCategoriesImgName = "TALK02I0.IMG";
@@ -1124,7 +1125,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         public void InitializeKnownCaptions()
         {
             // List of required captions
-            List<string> requiredCaptions = new List<string> { "any advice?", "buy an ale", "who are you?" };
+            List<string> requiredCaptions = new List<string> { "any advice?", "buy an ale", "buy a beer", "who are you?" };
 
             // Check if each required caption is already in knownCaptions, if not, add it
             foreach (string caption in requiredCaptions)
@@ -1234,18 +1235,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 return false;
             }
 
+            string variableValueStr = variableValue.ToString();
             string[] valuesToCompare = valueToCompare.Split('|').Select(v => v.Trim()).ToArray();
+
             switch (comparisonOperator)
             {
                 case "==":
-                    return valuesToCompare.Any(v => v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                    // Return true if any value matches exactly
+                    return valuesToCompare.Any(v => v.Equals(variableValueStr, StringComparison.OrdinalIgnoreCase));
                 case "!=":
-                    return valuesToCompare.All(v => !v.Equals(variableValue.ToString(), StringComparison.OrdinalIgnoreCase));
+                    // Return true if none of the values match exactly
+                    return valuesToCompare.All(v => !v.Equals(variableValueStr, StringComparison.OrdinalIgnoreCase));
+                case "~~":
+                    // Return true if any value is found within the variable value (partial match)
+                    return valuesToCompare.Any(v => variableValueStr.IndexOf(v, StringComparison.OrdinalIgnoreCase) >= 0);
+                case "!~":
+                    // Return true if none of the values are found within the variable value (partial match)
+                    return valuesToCompare.All(v => variableValueStr.IndexOf(v, StringComparison.OrdinalIgnoreCase) < 0);
                 case "<":
                 case ">":
                 case "<=":
                 case ">=":
-                    if (int.TryParse(variableValue.ToString(), out int intVariableValue))
+                    if (int.TryParse(variableValueStr, out int intVariableValue))
                     {
                         return valuesToCompare.All(v =>
                         {
@@ -1346,10 +1357,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             try
             {
-                // Regex pattern to find macros like %Some Variable% and preserve spaces
-                answer = Regex.Replace(answer, @"%([^%]+)%", match =>
+                // Regex pattern to find macros like @Some Variable@ and preserve spaces
+                answer = Regex.Replace(answer, @"@([^@]+)@", match =>
                 {
-                    string macroKey = match.Groups[1].Value.Trim(); // Get the text inside % % and trim spaces
+                    string macroKey = match.Groups[1].Value.Trim(); // Get the text inside @ @ and trim spaces
 
                     // Check if the macro exists in filterVariables
                     if (filterVariables.TryGetValue(macroKey, out object macroValue))
@@ -1752,6 +1763,32 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     // Select a random "subsequent" question from the variants
                     currentQuestion = buyAleVariants[UnityEngine.Random.Range(0, buyAleVariants.Length)];
                 }
+                else if (listItem.caption.Equals("Buy a beer", StringComparison.OrdinalIgnoreCase))
+
+                    if (isFirstBuyBeerRequest)
+                    {
+                        // First time asking to buy a beer
+                        string[] firstBuyBeerVariants = {
+                        "Good day, friend. Could I buy you a pint?",
+                        "Greetings! How about I buy you an beer?",
+                        "Hello there. Let me treat you to a drink."
+                    };
+
+                    // Select a random "first time" question from the variants
+                    currentQuestion = firstBuyBeerVariants[UnityEngine.Random.Range(0, firstBuyBeerVariants.Length)];
+                    }
+                    else
+                    {
+                        // Subsequent times asking to buy a beer
+                        string[] buyBeerVariants = {
+                        "Hmm. Fancy another beer on me?",
+                        "I see. How about I buy you another round?",
+                        "Interesting. Care for another pint, my friend?"
+                    };
+
+                    // Select a random "subsequent" question from the variants
+                    currentQuestion = buyBeerVariants[UnityEngine.Random.Range(0, buyBeerVariants.Length)];
+                }
                 else if (listItem.caption.Equals("Who are you?", StringComparison.OrdinalIgnoreCase))
                 {
                     if (isFirstWhoAreYouRequest)
@@ -1920,8 +1957,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 aleNpcName = filterVariables["NPC Name"] as string;
                             }
 
+                            // Set the ale price
+                            int alePrice = 1; // Vanilla ale price
+
                             // Step 2: Calculate ale price (this mimics the tavern's ale price)
-                            int alePrice = 1;  // You can set this to the desired price, or fetch it dynamically
+                            if (ADDialogue.CnCModEnabled)
+                            {
+                                alePrice = ADDialogue.CalculateAlePrice(); // Call the new method in ADDialogue
+                            }
+
                             PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
 
                             // Step 3: Check if the player has enough gold
@@ -2060,7 +2104,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             }
                             else
                             {
-                                // NPC is not in a building, get the region name instead
+                                // NPC is not in a building, get the region name
                                 if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName))
                                 {
                                     // Convert the region name to lowercase and add it to knownCaptions
@@ -2075,6 +2119,22 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 {
                                     Debug.Log("Current Region Name not found in filterVariables.");
                                 }
+                            }
+
+                            // NPC is not in a building, get the location name
+                            if (filterVariables.TryGetValue("Current Location Name", out object currentLocationName))
+                            {
+                                // Convert the region name to lowercase and add it to knownCaptions
+                                string locationNameToAdd = currentLocationName.ToString().ToLower();
+                                if (!knownCaptions.Contains(locationNameToAdd))
+                                {
+                                    knownCaptions.Add(locationNameToAdd);
+                                    topicsUpdated = true;
+                                }
+                            }
+                            else
+                            {
+                                Debug.Log("Current Location Name not found in filterVariables.");
                             }
                         }
 
@@ -2374,6 +2434,18 @@ namespace DaggerfallWorkshop.Game.UserInterface
             System.Random random = new System.Random();
             int randomNumber = random.Next(1, 101); // Random number between 1 and 100
             filterVariables["Random Number (NPC)"] = randomNumber;
+
+            // Get active mods and store them in a string variable
+            var activeMods = ModManager.Instance.Mods.ToList();
+
+            StringBuilder modList = new StringBuilder();
+            foreach (var mod in activeMods)
+            {
+                modList.AppendLine($"{mod.Title} (Version: {mod.ModInfo.ModVersion})");
+            }
+
+            // Trim any trailing space
+            filterVariables["Active Mods"] = modList.ToString().TrimEnd();
 
             // Log all filterVariables, only if ADDialogue.AD_Log is enabled
             if (ADDialogue.AD_Log)
