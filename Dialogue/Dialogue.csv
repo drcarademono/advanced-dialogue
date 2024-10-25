@@ -416,4 +416,6 @@ type	caption	answer	add_caption	c1_variable	c1_comp	c1_condition	c2_variable	c2_
 	Who are you?	I am @NPC Name@. I’m not supposed to talk to strangers.|I am @NPC Name@. You’re funny looking.|I am @NPC Name@. Why do you smell so bad?|I am @NPC Name@. Are you a real adventurer? I want to be an adventurer when I grow up!		NPC NoLore	==	1						
 	Who are you?	I am @NPC Name@.		NPC NoLore	==	2|3						
 	Who are you?	I am @NPC Name@, commoner.										
-	Buy an ale	Alright then, I suppose I could stay and chat with you a while.|Very kind of ya, %pcf.|Well sure, as long as you’re payin’!		NPC Building Type	==	Tavern	NPC NoLore	==	0			
+	Buy a beer	Alright then, I suppose I could stay and chat with you a while.|Very kind of ya, %pcf.|Well sure, as long as you’re payin’!		NPC Building Type	==	Tavern	Current Region Index	==	43|0|55|47|56|61|11|1|53|44|46|45|54|20|48	Active Mods	~~	Climates & Calories
+	Buy an ale	Alright then, I suppose I could stay and chat with you a while.|Very kind of ya, %pcf.|Well sure, as long as you’re payin’!		NPC Building Type	==	Tavern	Current Region Index	!=	43|0|55|47|56|61|11|1|53|44|46|45|54|20|48	Active Mods	~~	Climates & Calories
+	Buy an ale	Alright then, I suppose I could stay and chat with you a while.|Very kind of ya, %pcf.|Well sure, as long as you’re payin’!		NPC Building Type	==	Tavern	Active Mods	!~	Climates & Calories			

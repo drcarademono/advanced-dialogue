@@ -1948,7 +1948,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     {
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
-                        if (listItem.caption.Equals("Buy an ale", StringComparison.OrdinalIgnoreCase))
+                        if (listItem.caption.Equals("Buy an ale", StringComparison.OrdinalIgnoreCase) || 
+                            listItem.caption.Equals("Buy a beer", StringComparison.OrdinalIgnoreCase))
                         {
                             // Step 1: Get the NPC Name from filterVariables
                             string aleNpcName = "your interlocutor";  // Default value if NPC name is not found
@@ -1978,11 +1979,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Subtract the ale price from the player's gold
                             playerEntity.DeductGoldAmount(alePrice);
 
-                            // Step 4: Increase maxNumAnswersNpcGivesDialogue by 3 after buying an ale for the NPC
+                            // Step 4: Increase maxNumAnswersNpcGivesDialogue by 3 after buying an ale or beer for the NPC
                             maxNumAnswersNpcGivesDialogue += 3;
 
-                            // Step 5: Show a message confirming the purchase with the NPC's name and the price of the ale
-                            DaggerfallUI.MessageBox($"You bought an ale for {aleNpcName} for {alePrice} gold.");
+                            // Determine the correct article and drink type for the message
+                            string drinkType = listItem.caption.Equals("Buy a beer", StringComparison.OrdinalIgnoreCase) ? "beer" : "ale";
+                            string article = drinkType.Equals("ale") ? "an" : "a";
+
+                            // Step 5: Show a message confirming the purchase with the NPC's name and the price of the drink
+                            DaggerfallUI.MessageBox($"You bought {aleNpcName} {article} {drinkType} for {alePrice} gold.");
 
                             // Fetch the answer from the DialogueData
                             string answerData = dialogueItem.DialogueData["Answer"] as string;
