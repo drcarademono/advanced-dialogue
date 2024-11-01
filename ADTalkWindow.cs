@@ -1911,6 +1911,21 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
             else if (listItem.type == TalkManager.ListItemType.Item)
             {
+                PlayerEntity player = GameManager.Instance.PlayerEntity;
+                int toneIndex = TalkToneToIndex(selectedTalkTone);
+
+                //Tally ettiquette or streetwise skill as appropriate
+                if (toneIndex == 0)
+                {
+                    if (toneReactionForTalkSession[0] == 0)
+                        player.TallySkill(DFCareer.Skills.Etiquette, 1);
+                }
+                else if (toneIndex == 2)
+                {
+                    if (toneReactionForTalkSession[2] == 0)
+                        player.TallySkill(DFCareer.Skills.Streetwise, 1);
+                }
+
                 string answer;
                 bool topicsUpdated = false;
 
@@ -2543,15 +2558,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 skillValue = player.Skills.GetLiveSkillValue(DFCareer.Skills.Etiquette);
                 toneModifier += etiquetteReactionMods[socialGroup];
-                if (toneReactionForTalkSession[0] == 0)
-                    player.TallySkill(DFCareer.Skills.Etiquette, 1);
             }
             else if (toneIndex == 2)
             {
                 skillValue = player.Skills.GetLiveSkillValue(DFCareer.Skills.Streetwise);
                 toneModifier += streetwiseReactionMods[socialGroup];
-                if (toneReactionForTalkSession[2] == 0)
-                    player.TallySkill(DFCareer.Skills.Streetwise, 1);
             }
 
             if (toneIndex != 1)
