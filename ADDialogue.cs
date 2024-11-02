@@ -109,50 +109,144 @@ public class ADDialogue : MonoBehaviour
 
     public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
 
-    public void LoadDialogueTopicsFromCSV()
-    {
-        string filePath = "Dialogue.csv";
-        if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
-        {
-            using (StringReader reader = new StringReader(csvAsset.text))
-            {
-                string line = reader.ReadLine(); // Skip header
-                int lineNumber = 1;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    string[] values = line.Split('\t');
-                    TalkManager.ListItem item = new TalkManager.ListItem
-                    {
-                        type = TalkManager.ListItemType.Item,
-                        caption = values[1],
-                        questionType = TalkManager.QuestionType.OrganizationInfo,
-                        index = lineNumber
-                    };
-                    DialogueListItem dialogueItem = new DialogueListItem(item);
-                    dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
-                    dialogueItem.DialogueData.Add("Answer", values[2]); // Store raw answer text
-                    dialogueItem.DialogueData.Add("AddCaption", values[3]);
-                    dialogueItem.DialogueData.Add("C1_Variable", values[4]);
-                    dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
-                    dialogueItem.DialogueData.Add("C1_Value", values[6]);
-                    dialogueItem.DialogueData.Add("C2_Variable", values[7]);
-                    dialogueItem.DialogueData.Add("C2_Comparison", values[8]);
-                    dialogueItem.DialogueData.Add("C2_Value", values[9]);
-                    dialogueItem.DialogueData.Add("C3_Variable", values[10]);
-                    dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
-                    dialogueItem.DialogueData.Add("C3_Value", values[12]);
+public void LoadDialogueTopicsFromCSV()
+{
+    Debug.Log("Starting to load dialogue topics from all mods.");
+    dialogueListItems.Clear();
 
-                    dialogueListItems.Add(dialogueItem);
-                    lineNumber++;
+    foreach (var mod in ModManager.Instance.EnumerateModsReverse())
+    {
+        if (!mod.Enabled)
+        {
+            Debug.Log($"Skipping disabled mod '{mod.Title}'.");
+            continue;
+        }
+
+        Debug.Log($"Checking mod '{mod.Title}' for dialogue assets.");
+
+        // Check AssetBundle for dialogue files
+        if (mod.AssetBundle && mod.AssetBundle.GetAllAssetNames().Length > 0)
+        {
+            Debug.Log($"AssetBundle found for mod '{mod.Title}' with assets available.");
+
+            // Determine the base folder path within the AssetBundle
+            string dummyFilePath = mod.AssetBundle.GetAllAssetNames()[0];
+            string modFolderPrefix = dummyFilePath.Substring(17);
+            modFolderPrefix = dummyFilePath.Substring(0, 17 + modFolderPrefix.IndexOf('/'));
+            string dialogueFolder = modFolderPrefix + "/Dialogue";
+
+            Debug.Log($"Looking for '_Dialogue.csv' files in the folder '{dialogueFolder}' for mod '{mod.Title}'.");
+
+            // Iterate over assets, filtering for "_Dialogue.csv"
+            foreach (var assetName in mod.AssetBundle.GetAllAssetNames())
+            {
+                Debug.Log($"Checking asset '{assetName}' in mod '{mod.Title}'.");
+                string directoryName = Path.GetDirectoryName(assetName).Replace('\\', '/');
+
+                if (directoryName.Equals(dialogueFolder, StringComparison.InvariantCultureIgnoreCase) &&
+                    assetName.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.Log($"Found dialogue asset '{assetName}' in mod '{mod.Title}'.");
+
+                    if (mod.AssetBundle.LoadAsset<TextAsset>(assetName) is TextAsset csvAsset)
+                    {
+                        Debug.Log($"Successfully loaded TextAsset '{assetName}' from mod '{mod.Title}'.");
+                        LoadDialogueFromTextAsset(csvAsset);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Failed to load asset '{assetName}' as TextAsset in mod '{mod.Title}'.");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"Asset '{assetName}' does not match '_Dialogue.csv' or is not in the '{dialogueFolder}' directory for mod '{mod.Title}'.");
                 }
             }
-            Debug.Log("Dialogue topics loaded successfully.");
         }
-        else
+#if UNITY_EDITOR
+        // For loose files in the Unity Editor
+        else if (mod.IsVirtual && mod.ModInfo.Files.Any())
         {
-            Debug.LogError("CSV asset not found.");
+            Debug.Log($"Mod '{mod.Title}' is virtual and may contain loose files. Checking for loose '_Dialogue.csv' files.");
+
+            // Correcting the path to avoid duplicate "Assets/Assets"
+            foreach (var filename in mod.ModInfo.Files.Where(file => file.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase)))
+            {
+                string filePath = Path.Combine(Application.dataPath, filename);
+                filePath = filePath.Replace("Assets/Assets", "Assets");  // Correct any duplicate Assets in the path
+
+                Debug.Log($"Checking for existence of loose file at '{filePath}'.");
+
+                if (File.Exists(filePath))
+                {
+                    Debug.Log($"Found loose dialogue file '{filePath}' in mod '{mod.Title}'.");
+
+                    var csvText = File.ReadAllText(filePath);
+                    var csvAsset = new TextAsset(csvText); // Wrap file content as TextAsset for compatibility
+                    LoadDialogueFromTextAsset(csvAsset);
+                }
+                else
+                {
+                    Debug.LogWarning($"Expected file '{filePath}' not found in mod '{mod.Title}'.");
+                }
+            }
+        }
+#endif
+    }
+    Debug.Log("Finished loading dialogue topics from all mods.");
+}
+
+private void LoadDialogueFromTextAsset(TextAsset csvAsset)
+{
+    Debug.Log($"Parsing dialogue data from asset '{csvAsset.name}'.");
+
+    using (StringReader reader = new StringReader(csvAsset.text))
+    {
+        string line = reader.ReadLine(); // Skip header
+        int lineNumber = 1;
+
+        while ((line = reader.ReadLine()) != null)
+        {
+            Debug.Log($"Reading line {lineNumber} in asset '{csvAsset.name}': {line}");
+            string[] values = line.Split('\t');
+
+            if (values.Length < 13)
+            {
+                Debug.LogWarning($"Skipping malformed line {lineNumber} in '{csvAsset.name}'.");
+                continue;
+            }
+
+            TalkManager.ListItem item = new TalkManager.ListItem
+            {
+                type = TalkManager.ListItemType.Item,
+                caption = values[1],
+                questionType = TalkManager.QuestionType.OrganizationInfo,
+                index = lineNumber
+            };
+
+            DialogueListItem dialogueItem = new DialogueListItem(item);
+            dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
+            dialogueItem.DialogueData.Add("Answer", values[2]);
+            dialogueItem.DialogueData.Add("AddCaption", values[3]);
+            dialogueItem.DialogueData.Add("C1_Variable", values[4]);
+            dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
+            dialogueItem.DialogueData.Add("C1_Value", values[6]);
+            dialogueItem.DialogueData.Add("C2_Variable", values[7]);
+            dialogueItem.DialogueData.Add("C2_Comparison", values[8]);
+            dialogueItem.DialogueData.Add("C2_Value", values[9]);
+            dialogueItem.DialogueData.Add("C3_Variable", values[10]);
+            dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
+            dialogueItem.DialogueData.Add("C3_Value", values[12]);
+
+            dialogueListItems.Insert(0, dialogueItem); // Insert at beginning for priority
+            Debug.Log($"Added dialogue item '{item.caption}' from line {lineNumber}.");
+            lineNumber++;
         }
     }
+    Debug.Log($"Completed parsing dialogue data from asset '{csvAsset.name}'.");
+}
+
 
     public static string ToggleADLogging(string[] args)
     {
