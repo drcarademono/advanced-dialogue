@@ -29,6 +29,18 @@ public class ADDialogue : MonoBehaviour
 
     public static Dictionary<string, object> LocalizationKeys = new Dictionary<string, object>();
 
+    public class DialogueListItem
+    {
+        public TalkManager.ListItem ListItem { get; set; }
+        public Dictionary<string, object> DialogueData { get; set; }
+
+        public DialogueListItem(TalkManager.ListItem listItem)
+        {
+            ListItem = listItem;
+            DialogueData = new Dictionary<string, object>();
+        }
+    }
+
     [Invoke(StateManager.StateTypes.Start, 0)]
     public static void Init(InitParams initParams)
     {
@@ -47,6 +59,7 @@ public class ADDialogue : MonoBehaviour
         Mod.SaveDataInterface = ADSaveDataHandler.Instance; // Set up save data handler
 
         instance.LoadLocalizationKeys();
+        instance.LoadDialogueTopicsFromCSV();
 
         CnCMod = ModManager.Instance.GetModFromGUID("7975b109-1381-485b-bdfd-8d076bb5d0c9");
         if (CnCMod != null && CnCMod.Enabled)
@@ -56,6 +69,7 @@ public class ADDialogue : MonoBehaviour
         }
 
         ConsoleCommandsDatabase.RegisterCommand("AD_Log", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleADLogging);
+        ConsoleCommandsDatabase.RegisterCommand("AD_Reload", "Reloads all dialogue data and localization keys.", "", ReloadDialogueData);
     }
 
     public void LoadLocalizationKeys()
@@ -93,6 +107,53 @@ public class ADDialogue : MonoBehaviour
         }
     }
 
+    public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
+
+    public void LoadDialogueTopicsFromCSV()
+    {
+        string filePath = "Dialogue.csv";
+        if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
+        {
+            using (StringReader reader = new StringReader(csvAsset.text))
+            {
+                string line = reader.ReadLine(); // Skip header
+                int lineNumber = 1;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    string[] values = line.Split('\t');
+                    TalkManager.ListItem item = new TalkManager.ListItem
+                    {
+                        type = TalkManager.ListItemType.Item,
+                        caption = values[1],
+                        questionType = TalkManager.QuestionType.OrganizationInfo,
+                        index = lineNumber
+                    };
+                    DialogueListItem dialogueItem = new DialogueListItem(item);
+                    dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
+                    dialogueItem.DialogueData.Add("Answer", values[2]); // Store raw answer text
+                    dialogueItem.DialogueData.Add("AddCaption", values[3]);
+                    dialogueItem.DialogueData.Add("C1_Variable", values[4]);
+                    dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
+                    dialogueItem.DialogueData.Add("C1_Value", values[6]);
+                    dialogueItem.DialogueData.Add("C2_Variable", values[7]);
+                    dialogueItem.DialogueData.Add("C2_Comparison", values[8]);
+                    dialogueItem.DialogueData.Add("C2_Value", values[9]);
+                    dialogueItem.DialogueData.Add("C3_Variable", values[10]);
+                    dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
+                    dialogueItem.DialogueData.Add("C3_Value", values[12]);
+
+                    dialogueListItems.Add(dialogueItem);
+                    lineNumber++;
+                }
+            }
+            Debug.Log("Dialogue topics loaded successfully.");
+        }
+        else
+        {
+            Debug.LogError("CSV asset not found.");
+        }
+    }
+
     public static string ToggleADLogging(string[] args)
     {
         // Toggle the logging state
@@ -100,6 +161,16 @@ public class ADDialogue : MonoBehaviour
 
         // Return the current state as a string to be displayed in the console
         return $"Advanced Dialogue logging is now {(AD_Log ? "enabled" : "disabled")}";
+    }
+
+    public static string ReloadDialogueData(string[] args)
+    {
+        // Reload dialogue data
+        instance.LoadLocalizationKeys();
+        instance.LoadDialogueTopicsFromCSV();
+
+        // Return the current state as a string to be displayed in the console
+        return "Advanced Dialogue data has been reloaded.}";
     }
 
     /// <summary>

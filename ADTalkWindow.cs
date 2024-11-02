@@ -40,18 +40,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
     public class ADTalkWindow : DaggerfallTalkWindow
     {
 
-        public class DialogueListItem
-        {
-            public TalkManager.ListItem ListItem { get; set; }
-            public Dictionary<string, object> DialogueData { get; set; }
-
-            public DialogueListItem(TalkManager.ListItem listItem)
-            {
-                ListItem = listItem;
-                DialogueData = new Dictionary<string, object>();
-            }
-        }
-
         public static List<string> knownCaptions { get; set; } = new List<string>();
         private string[] repeatedResponses;
         private string[] exceededMaxResponses;
@@ -357,7 +345,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             LoadLocalizedText();
             InitializeKnownCaptions();
             GetFilterData();
-            LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
+            //ProcessDialogueItem();
 
             RemoveNumAnswersGivenForNPC();
 
@@ -430,9 +418,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
 
             // Clear the custom topics
-            if (dialogueListItems != null)
+            if (ADDialogue.instance.dialogueListItems != null)
             {
-                dialogueListItems.Clear();
+                ADDialogue.instance.dialogueListItems.Clear();
             }
         }
 
@@ -1117,20 +1105,20 @@ namespace DaggerfallWorkshop.Game.UserInterface
         protected virtual void UpdateTellMeAboutTopics()
         {
             // Create a new list to hold the merged topics
-            List<DialogueListItem> baseTopics = TalkManager.Instance.ListTopicTellMeAbout
-                .Select(item => new DialogueListItem(item)).ToList();
+            List<ADDialogue.DialogueListItem> baseTopics = TalkManager.Instance.ListTopicTellMeAbout
+                .Select(item => new ADDialogue.DialogueListItem(item)).ToList();
 
             // Remove all items with QuestionType.OrganizationInfo (ie, Factions questions)
             baseTopics.RemoveAll(dialogueItem => dialogueItem.ListItem.questionType == TalkManager.QuestionType.OrganizationInfo);
 
-            // Filter dialogueListItems by allowed captions and custom conditions
-            var knownDialogueItems = dialogueListItems
+            // Filter ADDialogue.instance.dialogueListItems by allowed captions and custom conditions
+            var knownDialogueItems = ADDialogue.instance.dialogueListItems
                 .Where(item => knownCaptions.Contains(item.ListItem.caption.ToLower()) && EvaluateConditions(item))
                 .GroupBy(item => item.ListItem.caption.ToLower())
                 .Select(group => group.First()) // Selects only the first item from each group
                 .ToList();
 
-            // Add all custom topics from dialogueListItems to the filtered list
+            // Add all custom topics from ADDialogue.instance.dialogueListItems to the filtered list
             baseTopics.AddRange(knownDialogueItems);
 
             baseTopics.Sort((item1, item2) =>
@@ -1144,7 +1132,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             UpdateScrollButtonsTopic();
         }
 
-        private bool EvaluateConditions(DialogueListItem item)
+        private bool EvaluateConditions(ADDialogue.DialogueListItem item)
         {
             System.Random random = new System.Random(); // Initialize a random number generator
             bool npcNoLoreConditionFound = false; // Flag to check if a specific NPC NoLore condition is set
@@ -1274,63 +1262,29 @@ namespace DaggerfallWorkshop.Game.UserInterface
             exceededMaxResponses = ((List<string>)ADDialogue.LocalizationKeys["exceededMaxResponses"]).ToArray();
         }
 
-        public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
-
-        public void LoadDialogueTopicsFromCSV()
-        {
-            string filePath = "Dialogue.csv"; // Path to your CSV file
-            if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
-            {
-                using (StringReader reader = new StringReader(csvAsset.text))
-                {
-                    string line = reader.ReadLine(); // Read header line
-                    int lineNumber = 1;
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        string[] values = line.Split('\t');
-                        TalkManager.ListItem item = new TalkManager.ListItem
-                        {
-                            type = TalkManager.ListItemType.Item,
-                            caption = values[1],
-                            questionType = TalkManager.QuestionType.OrganizationInfo,
-                            index = lineNumber
-                        };
-                        DialogueListItem dialogueItem = new DialogueListItem(item);
-                        dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
-
-                        // Process the answer string through macros, passing lineNumber for error tracking
-                        string processedAnswer = ProcessAnswerWithMacros(values[2], this.GetMacroContextProvider(), lineNumber);
-                        dialogueItem.DialogueData.Add("Answer", processedAnswer);
-
-                        dialogueItem.DialogueData.Add("AddCaption", values[3]);
-                        dialogueItem.DialogueData.Add("C1_Variable", values[4]);
-                        dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
-                        dialogueItem.DialogueData.Add("C1_Value", values[6]);
-                        dialogueItem.DialogueData.Add("C2_Variable", values[7]);
-                        dialogueItem.DialogueData.Add("C2_Comparison", values[8]);
-                        dialogueItem.DialogueData.Add("C2_Value", values[9]);
-                        dialogueItem.DialogueData.Add("C3_Variable", values[10]);
-                        dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
-                        dialogueItem.DialogueData.Add("C3_Value", values[12]);
-
-                        dialogueListItems.Add(dialogueItem);
-                        lineNumber++;
-                    }
-                }
-            }
-            else
-            {
-                Debug.LogError("CSV asset not found.");
-            }
-        }
-
         // Helper function to remove definite articles for sorting
         string RemoveDefiniteArticlePrefix(string caption)
         {
-            // Check if the key exists in LocalizationKeys and is stored as a list
-            if (!ADDialogue.LocalizationKeys.TryGetValue("definiteArticles", out var definiteArticlesObj) || !(definiteArticlesObj is List<string> definiteArticles))
+            // Check if the key exists in LocalizationKeys
+            if (!ADDialogue.LocalizationKeys.TryGetValue("definiteArticles", out var definiteArticlesObj))
             {
-                Debug.LogError("Error: 'definiteArticles' key is missing or not a list in LocalizationKeys.");
+                Debug.LogError("Error: 'definiteArticles' key is missing in LocalizationKeys.");
+                return caption;
+            }
+
+            // Prepare the list of articles to check against
+            List<string> definiteArticles;
+            if (definiteArticlesObj is List<string> articlesList)
+            {
+                definiteArticles = articlesList;
+            }
+            else if (definiteArticlesObj is string singleArticle)
+            {
+                definiteArticles = new List<string> { singleArticle };
+            }
+            else
+            {
+                Debug.LogError("Error: 'definiteArticles' key is not a string or a list.");
                 return caption;
             }
 
@@ -1919,8 +1873,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     string adviceKey = ADDialogue.LocalizationKeys["adviceKey"] as string;
                     string meKey = ADDialogue.LocalizationKeys["meKey"] as string;
 
-                    // Check if this ListItem has a DialogueListItem wrapper
-                    DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
+                    // Check if this ListItem has a ADDialogue.DialogueListItem wrapper
+                    ADDialogue.DialogueListItem dialogueItem = ADDialogue.instance.dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
                     if (dialogueItem != null)
                     {
                         string aleKey = ADDialogue.LocalizationKeys["aleKey"] as string;
@@ -2035,6 +1989,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
                             int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
                             answer = possibleAnswers[selectedIndex].Trim();
+                            answer = ProcessAnswerWithMacros(answer, this.GetMacroContextProvider(), -1);
 
                             // Add to the set of responded captions
                             respondedCaptions.Add(captionLower);
@@ -2057,7 +2012,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                             string trimmedCaption = caption.Trim().ToLower();
 
                                             // Check existing dialogue items for this caption and validate conditions
-                                            foreach (var item in dialogueListItems)
+                                            foreach (var item in ADDialogue.instance.dialogueListItems)
                                             {
                                                 if (item.ListItem.caption.ToLower() == trimmedCaption && EvaluateConditions(item))
                                                 {
