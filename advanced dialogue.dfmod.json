@@ -8,6 +8,7 @@
     "GUID": "8edbf196-dacf-4fad-ba2f-e8b54d36b154",
     "Files": [
         "Assets/Game/Mods/advanced-dialogue/Dialogue/Dialogue.csv",
+        "Assets/Game/Mods/advanced-dialogue/Dialogue/AD_Keys.csv",
         "Assets/Game/Mods/advanced-dialogue/ADDialogue.cs",
         "Assets/Game/Mods/advanced-dialogue/ADTalkWindow.cs",
         "Assets/Game/Mods/advanced-dialogue/ADSaveDataHandler.cs",

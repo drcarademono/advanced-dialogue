@@ -1,0 +1,24 @@
+key	text
+definiteArticles	the
+anyAdvice	any advice?
+whoAreYou	who are you?
+buyAnAle	buy an ale
+buyABeer	buy a beer
+adviceKey	advice
+aleKey	an ale
+beerKey	a beer
+interlocutorKey	your interlocutor
+meKey	me
+notEnoughGold	You don't have enough gold.
+boughtDrink	You bought {aleNpcName} {drinkType} for {alePrice} gold.
+knownCaptions	any advice?|who are you?|buy an ale|buy a beer
+repeatedResponses	I've got nothing more to say about [caption].|Enough about [caption] already.|I'd rather not talk about [caption], %ra.|Are you soft in the head, %ra? We already discussed [caption].|Let's not beat a dead horse, %ra. Move on from [caption].|Do you have the memory of a goldfish? We just went over [caption].|Drop it, %ra. I'm done talking about [caption].|Seriously, %ra? That again? Find someone else to bother.
+exceededMaxResponses	I think you've wasted enough of my time, %ra.|Go pester someone else about that.|If you'll excuse me, I've got other things to do.|Enough, %ra! My patience is thin and you've just run out.|Our chat ends now, %ra. You're becoming a nuisance.|I've had it. No more questions, %ra.|Look, %ra, I'm not here to entertain your endless queries.
+firstAdviceVariants	Good day, stranger. Do you have any advice for me?|Good day. Could you offer me some advice?|Hello, mate. What advice might you have for someone like me?
+adviceVariants	Hmm. Do you have any advice for me?|I see. Could you offer me some advice?|Interesting. What advice might you have for someone like me?
+firstBuyAleVariants	Good day, friend. Could I buy you a pint?|Greetings! How about I buy you an ale?|Hello there. Let me treat you to a drink.
+buyAleVariants	Hmm. Fancy another ale on me?|I see. How about I buy you another round?|Interesting. Care for another pint, my friend?
+firstBuyBeerVariants	Good day, friend. Could I buy you a pint?|Greetings! How about I buy you a beer?|Hello there. Let me treat you to a drink.
+buyBeerVariants	Hmm. Fancy another beer on me?|I see. How about I buy you another round?|Interesting. Care for another pint, my friend?
+firstWhoAreYouVariants	Good day, stranger. Who might you be?|Greetings. Who do I have the pleasure of speaking with?|Hello, mate. Tell me a bit about yourself.
+whoAreYouVariants	Hmm. Can you tell me a bit about yourself?|I see. And who are you, exactly?|Interesting. Can you tell me about yourself?

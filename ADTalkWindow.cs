@@ -52,6 +52,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
         }
 
+        public static List<string> knownCaptions { get; set; } = new List<string>();
+        private string[] repeatedResponses;
+        private string[] exceededMaxResponses;
+
         [Serializable]
         public class ADTalkWindowSaveData
         {
@@ -59,37 +63,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
             public Dictionary<string, (int numAnswers, int dayOfYear)> numAnswersGivenDialogue = new Dictionary<string, (int numAnswers, int dayOfYear)>();
         }
 
-        // Static property for known captions
-        public static List<string> knownCaptions { get; set; } = new List<string> { "any advice?", "who are you?", "buy an ale", "buy a beer" };
-
         public Dictionary<string, object> filterVariables = new Dictionary<string, object>();
 
         protected HashSet<string> respondedCaptions = new HashSet<string>();
-
-        // Define possible responses when the player asks about a caption again
-        string[] repeatedResponses = new string[]
-        {
-            "I've got nothing more to say about [caption].",
-            "Enough about [caption] already.",
-            "I'd rather not talk about [caption], %ra.",
-            "Are you soft in the head, %ra? We already discussed [caption].",
-            "Let's not beat a dead horse, %ra. Move on from [caption].",
-            "Do you have the memory of a goldfish? We just went over [caption].",
-            "Drop it, %ra. I'm done talking about [caption].",
-            "Seriously, %ra? That again? Find someone else to bother."
-        };
-
-        // Define possible responses when the player asks too many questions
-        string[] exceededMaxResponses = new string[]
-        {
-            "I think you've wasted enough of my time, %ra.",
-            "Go pester someone else about that.",
-            "If you'll excuse me, I've got other things to do.",
-            "Enough, %ra! My patience is thin and you've just run out.",
-            "Our chat ends now, %ra. You're becoming a nuisance.",
-            "I've had it. No more questions, %ra.",
-            "Look, %ra, I'm not here to entertain your endless queries."
-        };
 
         protected int reactionToPlayer;
         protected int reactionToPlayer_0_1_2;
@@ -378,6 +354,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             isFirstWhoAreYouRequest = true;
             isFirstBuyAleRequest = true;
 
+            LoadLocalizedText();
             InitializeKnownCaptions();
             GetFilterData();
             LoadDialogueTopicsFromCSV(); // Load custom dialogue topics from CSV
@@ -1013,11 +990,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
 
                 // Modify display caption to remove initial "the "
-                string displayCaption = item.caption;
-                if (displayCaption.ToLower().StartsWith("the "))
-                {
-                    displayCaption = displayCaption.Substring(4); // Remove the first 4 characters which are "the "
-                }
+                string displayCaption = RemoveDefiniteArticlePrefix(item.caption);
 
                 listboxTopic.AddItem(displayCaption, out listboxItem);
                 if (item.type == TalkManager.ListItemType.NavigationBack)
@@ -1124,11 +1097,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public void InitializeKnownCaptions()
         {
-            // List of required captions
-            List<string> requiredCaptions = new List<string> { "any advice?", "buy an ale", "buy a beer", "who are you?" };
+            // Ensure that knownCaptions has been loaded from the CSV
+            if (knownCaptions == null || knownCaptions.Count == 0)
+            {
+                Debug.LogError("knownCaptions not loaded from CSV.");
+                return;
+            }
 
-            // Check if each required caption is already in knownCaptions, if not, add it
-            foreach (string caption in requiredCaptions)
+            // Iterate over each item in knownCaptions from the CSV and add to the internal list if not already present
+            foreach (string caption in knownCaptions)
             {
                 if (!knownCaptions.Contains(caption))
                 {
@@ -1156,14 +1133,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Add all custom topics from dialogueListItems to the filtered list
             baseTopics.AddRange(knownDialogueItems);
 
-            // Helper function to remove "the " prefix for sorting
-            string RemoveThePrefix(string caption)
-            {
-                return caption.ToLower().StartsWith("the ") ? caption.Substring(4) : caption;
-            }
-
             baseTopics.Sort((item1, item2) =>
-                string.Compare(RemoveThePrefix(item1.ListItem.caption), RemoveThePrefix(item2.ListItem.caption), StringComparison.OrdinalIgnoreCase));
+                string.Compare(RemoveDefiniteArticlePrefix(item1.ListItem.caption), RemoveDefiniteArticlePrefix(item2.ListItem.caption), StringComparison.OrdinalIgnoreCase));
 
             // Use the filtered list to set the topics in your list box
             SetListboxTopics(ref listboxTopic, baseTopics.Select(di => di.ListItem).ToList());
@@ -1296,6 +1267,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
             }
         }
 
+        private void LoadLocalizedText()
+        {
+            knownCaptions = (List<string>)ADDialogue.LocalizationKeys["knownCaptions"];
+            repeatedResponses = ((List<string>)ADDialogue.LocalizationKeys["repeatedResponses"]).ToArray();
+            exceededMaxResponses = ((List<string>)ADDialogue.LocalizationKeys["exceededMaxResponses"]).ToArray();
+        }
+
         public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
 
         public void LoadDialogueTopicsFromCSV()
@@ -1344,6 +1322,33 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 Debug.LogError("CSV asset not found.");
             }
+        }
+
+        // Helper function to remove definite articles for sorting
+        string RemoveDefiniteArticlePrefix(string caption)
+        {
+            // Retrieve the definite articles list from localization
+            string[] definiteArticles = (ADDialogue.LocalizationKeys["definiteArticles"] as string)?.Split('|');
+
+            // If no definite articles are defined, just return the original caption
+            if (definiteArticles == null || definiteArticles.Length == 0)
+                return caption;
+
+            // Loop through each definite article
+            foreach (string article in definiteArticles)
+            {
+                string articleWithSpace = article.Trim() + " ";
+
+                // Check if the caption starts with the current definite article followed by a space
+                if (caption.ToLower().StartsWith(articleWithSpace.ToLower()))
+                {
+                    // Remove the article and trim any leading/trailing whitespace
+                    return caption.Substring(articleWithSpace.Length).Trim();
+                }
+            }
+
+            // If no article matched, return the original caption
+            return caption;
         }
 
         // This assumes you have a method to get the current macro context provider
@@ -1708,115 +1713,67 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     listItem = listCurrentTopics[index];
                 }
             }
-
             if (listItem.type == TalkManager.ListItemType.Item)
             {
-                if (listItem.caption.Equals("Any advice?", StringComparison.OrdinalIgnoreCase))
+                string anyAdvice = ADDialogue.LocalizationKeys["anyAdvice"] as string;
+                string buyAnAle = ADDialogue.LocalizationKeys["buyAnAle"] as string;
+                string buyABeer = ADDialogue.LocalizationKeys["buyABeer"] as string;
+                string whoAreYou = ADDialogue.LocalizationKeys["whoAreYou"] as string;
+
+                if (listItem.caption.Equals(anyAdvice, StringComparison.OrdinalIgnoreCase))
                 {
                     if (isFirstAdviceRequest)
                     {
-                        string[] firstAdviceVariants = {
-                            "Good day, stranger. Do you have any advice for me?",
-                            "Good day. Could you offer me some advice?",
-                            "Hello, mate. What advice might you have for someone like me?"
-                        };
-
-                        // Select a random advice question from the variants
-                        currentQuestion = firstAdviceVariants[UnityEngine.Random.Range(0, firstAdviceVariants.Length)];
+                        var firstAdviceVariants = ADDialogue.LocalizationKeys["firstAdviceVariants"] as List<string>;
+                        currentQuestion = firstAdviceVariants[UnityEngine.Random.Range(0, firstAdviceVariants.Count)];
                     }
                     else
                     {
-                        string[] adviceVariants = {
-                            "Hmm. Do you have any advice for me?",
-                            "I see. Could you offer me some advice?",
-                            "Interesting. What advice might you have for someone like me?"
-                        };
-
-                        // Select a random advice question from the variants
-                        currentQuestion = adviceVariants[UnityEngine.Random.Range(0, adviceVariants.Length)];
+                        var adviceVariants = ADDialogue.LocalizationKeys["adviceVariants"] as List<string>;
+                        currentQuestion = adviceVariants[UnityEngine.Random.Range(0, adviceVariants.Count)];
                     }
-
                 }
-                else if (listItem.caption.Equals("Buy an ale", StringComparison.OrdinalIgnoreCase))
-
+                else if (listItem.caption.Equals(buyAnAle, StringComparison.OrdinalIgnoreCase))
+                {
                     if (isFirstBuyAleRequest)
                     {
-                        // First time asking to buy an ale
-                        string[] firstBuyAleVariants = {
-                        "Good day, friend. Could I buy you a pint?",
-                        "Greetings! How about I buy you an ale?",
-                        "Hello there. Let me treat you to a drink."
-                    };
-
-                    // Select a random "first time" question from the variants
-                    currentQuestion = firstBuyAleVariants[UnityEngine.Random.Range(0, firstBuyAleVariants.Length)];
+                        var firstBuyAleVariants = ADDialogue.LocalizationKeys["firstBuyAleVariants"] as List<string>;
+                        currentQuestion = firstBuyAleVariants[UnityEngine.Random.Range(0, firstBuyAleVariants.Count)];
                     }
                     else
                     {
-                        // Subsequent times asking to buy an ale
-                        string[] buyAleVariants = {
-                        "Hmm. Fancy another ale on me?",
-                        "I see. How about I buy you another round?",
-                        "Interesting. Care for another pint, my friend?"
-                    };
-
-                    // Select a random "subsequent" question from the variants
-                    currentQuestion = buyAleVariants[UnityEngine.Random.Range(0, buyAleVariants.Length)];
+                        var buyAleVariants = ADDialogue.LocalizationKeys["buyAleVariants"] as List<string>;
+                        currentQuestion = buyAleVariants[UnityEngine.Random.Range(0, buyAleVariants.Count)];
+                    }
                 }
-                else if (listItem.caption.Equals("Buy a beer", StringComparison.OrdinalIgnoreCase))
-
+                else if (listItem.caption.Equals(buyABeer, StringComparison.OrdinalIgnoreCase))
+                {
                     if (isFirstBuyBeerRequest)
                     {
-                        // First time asking to buy a beer
-                        string[] firstBuyBeerVariants = {
-                        "Good day, friend. Could I buy you a pint?",
-                        "Greetings! How about I buy you an beer?",
-                        "Hello there. Let me treat you to a drink."
-                    };
-
-                    // Select a random "first time" question from the variants
-                    currentQuestion = firstBuyBeerVariants[UnityEngine.Random.Range(0, firstBuyBeerVariants.Length)];
+                        var firstBuyBeerVariants = ADDialogue.LocalizationKeys["firstBuyBeerVariants"] as List<string>;
+                        currentQuestion = firstBuyBeerVariants[UnityEngine.Random.Range(0, firstBuyBeerVariants.Count)];
                     }
                     else
                     {
-                        // Subsequent times asking to buy a beer
-                        string[] buyBeerVariants = {
-                        "Hmm. Fancy another beer on me?",
-                        "I see. How about I buy you another round?",
-                        "Interesting. Care for another pint, my friend?"
-                    };
-
-                    // Select a random "subsequent" question from the variants
-                    currentQuestion = buyBeerVariants[UnityEngine.Random.Range(0, buyBeerVariants.Length)];
+                        var buyBeerVariants = ADDialogue.LocalizationKeys["buyBeerVariants"] as List<string>;
+                        currentQuestion = buyBeerVariants[UnityEngine.Random.Range(0, buyBeerVariants.Count)];
+                    }
                 }
-                else if (listItem.caption.Equals("Who are you?", StringComparison.OrdinalIgnoreCase))
+                else if (listItem.caption.Equals(whoAreYou, StringComparison.OrdinalIgnoreCase))
                 {
                     if (isFirstWhoAreYouRequest)
                     {
-                        string[] firstWhoAreYouVariants = {
-                            "Good day, stranger. Who might you be?",
-                            "Greetings. Who do I have the pleasure of speaking with?",
-                            "Hello, mate. Tell me a bit about yourself."
-                        };
-
-                        // Select a random advice question from the variants
-                        currentQuestion = firstWhoAreYouVariants[UnityEngine.Random.Range(0, firstWhoAreYouVariants.Length)];
+                        var firstWhoAreYouVariants = ADDialogue.LocalizationKeys["firstWhoAreYouVariants"] as List<string>;
+                        currentQuestion = firstWhoAreYouVariants[UnityEngine.Random.Range(0, firstWhoAreYouVariants.Count)];
                     }
                     else
                     {
-                        string[] whoAreYouVariants = {
-                            "Hmm. Can you tell me a bit about yourself?",
-                            "I see. And who are you, exactly?",
-                            "Interesting. Can you tell me about yourself?"
-                        };
-
-                        // Select a random advice question from the variants
-                        currentQuestion = whoAreYouVariants[UnityEngine.Random.Range(0, whoAreYouVariants.Length)];
+                        var whoAreYouVariants = ADDialogue.LocalizationKeys["whoAreYouVariants"] as List<string>;
+                        currentQuestion = whoAreYouVariants[UnityEngine.Random.Range(0, whoAreYouVariants.Count)];
                     }
                 }
                 else
                 {
-                    // Fetch the standard question text for other items
                     currentQuestion = TalkManager.Instance.GetQuestionText(listItem, selectedTalkTone);
                 }
             }
@@ -1957,17 +1914,29 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
                 else
                 {
+                    string anyAdvice = ADDialogue.LocalizationKeys["anyAdvice"] as string;
+                    string whoAreYou = ADDialogue.LocalizationKeys["whoAreYou"] as string;
+                    string adviceKey = ADDialogue.LocalizationKeys["adviceKey"] as string;
+                    string meKey = ADDialogue.LocalizationKeys["meKey"] as string;
+
                     // Check if this ListItem has a DialogueListItem wrapper
                     DialogueListItem dialogueItem = dialogueListItems.FirstOrDefault(di => di.ListItem == listItem);
                     if (dialogueItem != null)
                     {
+                        string aleKey = ADDialogue.LocalizationKeys["aleKey"] as string;
+                        string beerKey = ADDialogue.LocalizationKeys["beerKey"] as string;
+                        string buyAnAle = ADDialogue.LocalizationKeys["buyAnAle"] as string;
+                        string buyABeer = ADDialogue.LocalizationKeys["buyABeer"] as string;
+                        string interlocutorKey = ADDialogue.LocalizationKeys["interlocutorKey"] as string;
+                        string notEnoughGold = ADDialogue.LocalizationKeys["notEnoughGold"] as string;
+
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
-                        if (listItem.caption.Equals("Buy an ale", StringComparison.OrdinalIgnoreCase) || 
-                            listItem.caption.Equals("Buy a beer", StringComparison.OrdinalIgnoreCase))
+                        if (listItem.caption.Equals(buyAnAle, StringComparison.OrdinalIgnoreCase) ||
+                            listItem.caption.Equals(buyABeer, StringComparison.OrdinalIgnoreCase))
                         {
                             // Step 1: Get the NPC Name from filterVariables
-                            string aleNpcName = "your interlocutor";  // Default value if NPC name is not found
+                            string aleNpcName = interlocutorKey;  // Default value if NPC name is not found
                             if (filterVariables.ContainsKey("NPC Name"))
                             {
                                 aleNpcName = filterVariables["NPC Name"] as string;
@@ -1987,7 +1956,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Step 3: Check if the player has enough gold
                             if (playerEntity.GetGoldAmount() < alePrice)
                             {
-                                DaggerfallUI.MessageBox("You don't have enough gold.");
+                                DaggerfallUI.MessageBox(notEnoughGold);
                                 return;
                             }
 
@@ -1998,11 +1967,19 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             maxNumAnswersNpcGivesDialogue += 3;
 
                             // Determine the correct article and drink type for the message
-                            string drinkType = listItem.caption.Equals("Buy a beer", StringComparison.OrdinalIgnoreCase) ? "beer" : "ale";
-                            string article = drinkType.Equals("ale") ? "an" : "a";
+                            string drinkType = listItem.caption.Equals(buyABeer, StringComparison.OrdinalIgnoreCase) ? beerKey : aleKey;
 
                             // Step 5: Show a message confirming the purchase with the NPC's name and the price of the drink
-                            DaggerfallUI.MessageBox($"You bought {aleNpcName} {article} {drinkType} for {alePrice} gold.");
+                            string boughtDrinkTemplate = ADDialogue.LocalizationKeys["boughtDrink"] as string;
+
+                            // Replace placeholders with actual values
+                            string boughtDrinkMessage = boughtDrinkTemplate
+                                .Replace("{aleNpcName}", aleNpcName)
+                                .Replace("{drinkType}", drinkType)
+                                .Replace("{alePrice}", alePrice.ToString());
+
+                            // Display the message
+                            DaggerfallUI.MessageBox(boughtDrinkMessage);
 
                             // Fetch the answer from the DialogueData
                             string answerData = dialogueItem.DialogueData["Answer"] as string;
@@ -2019,10 +1996,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             string responseTemplate = repeatedResponses[UnityEngine.Random.Range(0, repeatedResponses.Length)];
 
                             // Check if the caption is "Any advice?" or "Who are you?" and replace accordingly
-                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" 
-                                ? "advice" 
-                                : dialogueItem.ListItem.caption.ToLower() == "who are you?" 
-                                ? "me" 
+                            string modifiedCaption = captionLower == anyAdvice.ToLower() 
+                                ? adviceKey 
+                                : captionLower == whoAreYou.ToLower() 
+                                ? meKey 
                                 : dialogueItem.ListItem.caption;
 
                             // Replace [caption] with the modified caption
@@ -2037,10 +2014,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             string responseTemplate = exceededMaxResponses[UnityEngine.Random.Range(0, exceededMaxResponses.Length)];
 
                             // Check if the caption is "Any advice?" or "Who are you?" and replace accordingly
-                            string modifiedCaption = dialogueItem.ListItem.caption.ToLower() == "any advice?" 
-                                ? "advice" 
-                                : dialogueItem.ListItem.caption.ToLower() == "who are you?" 
-                                ? "me" 
+                            string modifiedCaption = captionLower == anyAdvice.ToLower() 
+                                ? adviceKey 
+                                : captionLower == whoAreYou.ToLower() 
+                                ? meKey 
                                 : dialogueItem.ListItem.caption;
 
                             // Replace [caption] with the modified caption

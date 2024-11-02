@@ -11,7 +11,9 @@ using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Wenzil.Console;
 
 public class ADDialogue : MonoBehaviour
@@ -24,6 +26,8 @@ public class ADDialogue : MonoBehaviour
     public static Mod CnCMod;
 
     public static bool CnCModEnabled;
+
+    public static Dictionary<string, object> LocalizationKeys = new Dictionary<string, object>();
 
     [Invoke(StateManager.StateTypes.Start, 0)]
     public static void Init(InitParams initParams)
@@ -42,6 +46,8 @@ public class ADDialogue : MonoBehaviour
         // Set the singleton save data handler as the mod's save data interface
         Mod.SaveDataInterface = ADSaveDataHandler.Instance; // Set up save data handler
 
+        instance.LoadLocalizationKeys();
+
         CnCMod = ModManager.Instance.GetModFromGUID("7975b109-1381-485b-bdfd-8d076bb5d0c9");
         if (CnCMod != null && CnCMod.Enabled)
         {
@@ -50,6 +56,41 @@ public class ADDialogue : MonoBehaviour
         }
 
         ConsoleCommandsDatabase.RegisterCommand("AD_Log", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleADLogging);
+    }
+
+    public void LoadLocalizationKeys()
+    {
+        string filePath = "AD_Keys.csv";
+        if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
+        {
+            using (StringReader reader = new StringReader(csvAsset.text))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    string[] values = line.Split('\t'); // Using tab delimiter for TSV
+                    if (values.Length < 2) continue;
+
+                    string key = values[0];
+                    string text = values[1];
+
+                    // If the value contains '|', split into a list; otherwise, store it as a single string
+                    if (text.Contains("|"))
+                    {
+                        LocalizationKeys[key] = text.Split('|').ToList();
+                    }
+                    else
+                    {
+                        LocalizationKeys[key] = text;
+                    }
+                }
+            }
+            Debug.Log("Localization keys loaded successfully.");
+        }
+        else
+        {
+            Debug.LogError("Localization keys file not found.");
+        }
     }
 
     public static string ToggleADLogging(string[] args)
