@@ -1327,28 +1327,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
         // Helper function to remove definite articles for sorting
         string RemoveDefiniteArticlePrefix(string caption)
         {
-            // Retrieve the definite articles list from localization
-            string[] definiteArticles = (ADDialogue.LocalizationKeys["definiteArticles"] as string)?.Split('|');
-
-            // If no definite articles are defined, just return the original caption
-            if (definiteArticles == null || definiteArticles.Length == 0)
-                return caption;
-
-            // Loop through each definite article
-            foreach (string article in definiteArticles)
+            // Check if the key exists in LocalizationKeys and is stored as a list
+            if (!ADDialogue.LocalizationKeys.TryGetValue("definiteArticles", out var definiteArticlesObj) || !(definiteArticlesObj is List<string> definiteArticles))
             {
-                string articleWithSpace = article.Trim() + " ";
-
-                // Check if the caption starts with the current definite article followed by a space
-                if (caption.ToLower().StartsWith(articleWithSpace.ToLower()))
-                {
-                    // Remove the article and trim any leading/trailing whitespace
-                    return caption.Substring(articleWithSpace.Length).Trim();
-                }
+                Debug.LogError("Error: 'definiteArticles' key is missing or not a list in LocalizationKeys.");
+                return caption;
             }
 
-            // If no article matched, return the original caption
-            return caption;
+            // Find the first article that matches the start of the caption, ignoring case
+            string matchedArticle = definiteArticles
+                .Select(article => article.Trim() + " ")
+                .FirstOrDefault(article => caption.StartsWith(article, StringComparison.OrdinalIgnoreCase));
+
+            // If a match was found, remove it and trim; otherwise, return the original caption
+            if (matchedArticle != null)
+            {
+                string result = caption.Substring(matchedArticle.Length).Trim();
+                return result;
+            }
+            else
+            {
+                return caption;
+            }
         }
 
         // This assumes you have a method to get the current macro context provider
