@@ -165,8 +165,14 @@ public class ADDialogue : MonoBehaviour
 
     public static string ReloadDialogueData(string[] args)
     {
+
+        // Clear the custom topics
+        if (instance.dialogueListItems != null)
+        {
+            instance.dialogueListItems.Clear();
+        }
         // Reload dialogue data
-        instance.LoadLocalizationKeys();
+        //instance.LoadLocalizationKeys();
         instance.LoadDialogueTopicsFromCSV();
 
         // Return the current state as a string to be displayed in the console

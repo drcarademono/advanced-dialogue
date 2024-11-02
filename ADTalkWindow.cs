@@ -416,12 +416,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 numAnswersGivenDialogue.Add(npcName, (currentNumAnswersGivenDialogue, currentDayOfYear));
             }
-
-            // Clear the custom topics
-            if (ADDialogue.instance.dialogueListItems != null)
-            {
-                ADDialogue.instance.dialogueListItems.Clear();
-            }
         }
 
         public override void Update()
