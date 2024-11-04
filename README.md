@@ -1,4 +1,47 @@
-### Tutorial: Adding Custom Dialogue with Advanced Dialogue
+### Advanced Dialogue
+
+This mod adds filter-based NPC dialogue for Daggerfall Unity, similar to that in Morrowind.
+
+**Main Features**
+The mod currently includes:
+- Over 25,000 words of dialogue.
+- Extensive regional dialogue for ﻿Daggerfall, Sentinel, and Wayrest.
+- Additional dialogue for Abibon-Gora, Alcaire, Alik'r Desert, Anticlere, Antiphyllos, Bergama, Betony, Bhoriane, Daenia, Dak'fron, Dragontail Mountains, Dwynnen, Glenpoint, Isle of Balfiera, Lainlyn, Kairou, Myrkwasa, Totambu, and Wrothgarian Mountains.
+- Dialogue for all joinable factions and witch covens.
+- Unique NPC dialogue (for the first release, only King Gothryd of Daggerfall is scripted).
+- A system for other modders to add dialogue from their own mods.
+- Ability to completely localize (translate) the mod.
+
+**How to Get Started**
+Head to one of the covered regions (see above) and start talking to NPCs. Ask them for advice and "Where Am I?" NPCs are busy, so watch your tone and your local reputation if you'd like them to answer more of your endless questions. Make sure to ask different people about the same topic, as different NPCs have different bits of information, and sometimes different opinions.
+
+**Future Features**
+Future releases willl add additional unique NPC dialogue, regional dialogue, faction dialogue, and dialogue that changes as the player progresses through the main quest.
+
+If you're interested in writing dialogue, either as part of this project or for a separate mod, please contact me on Lysandus' Tomb.
+
+**Compatibility Issues**
+Advanced Dialogue is not compatible with UncannyUI. However, it is compatible with Jagget's fork of UncannyUI if you disable the Uncanny dialogue window in the mod settings and delete mod_uncannyui.txt.
+
+Advanced Dialogue and Hidden Map Locations are mostly compatible if you put AD after HML in the load order. But there's one HML feature that currently doesn't work with AD (adding discovered locations from the "Where Is > Regional" menu). I'll be working on a fix for this shortly as I love HML.
+
+Advanced Dialogue should be safe to install without starting a new game.
+
+**Recommended Mods**
+I strongly recommend Main Quest Enhanced by Sappho20 as a companion mod to this one. MQE makes the main quest much richer and more coherent.
+
+**Lore Notes**
+This mod treats only Daggerfall-era lore as canonical. Thus, Redguards and Bretons worship the same gods, the Direnni are Bretons, and the Direnni Tower is just a tall old building. Later lore may sometimes be adopted as inspiration on a case-by-case basis.
+
+**Contributors**
+carademono (coding and most dialogue)
+Jo'Zakar (regional and faction dialogue)
+Deepfighter (faction dialogue)
+Jehuty (some regional dialogue)
+
+---
+
+### Modding Tutorial: Adding Custom Dialogue with Advanced Dialogue
 
 If you\'d like to add your own dialogue lines to the *Advanced Dialogue*
 mod in **Daggerfall Unity**, you can do this by creating your own custom
