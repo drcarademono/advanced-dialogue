@@ -303,7 +303,7 @@ public class ADDialogue : MonoBehaviour
         instance.LoadDialogueTopicsFromCSV();
 
         // Return the current state as a string to be displayed in the console
-        return "Advanced Dialogue data has been reloaded.}";
+        return "Advanced Dialogue data has been reloaded.";
     }
 
     /// <summary>

@@ -349,10 +349,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             RemoveNumAnswersGivenForNPC();
 
-            string npcName = filterVariables["NPC Name"] as string;
+            string npcName = filterVariables["Name"] as string;
             if (npcName == null)
             {
-                Debug.LogError("NPC Name is not set in filterVariables.");
+                Debug.LogError("Name is not set in filterVariables.");
                 return;
             }
 
@@ -398,10 +398,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             GameManager.Instance.PlayerEntity.Notebook.AddNote(copiedEntries);
 
             // Retrieve the NPC name from filterVariables and cast it explicitly to string
-            string npcName = filterVariables["NPC Name"] as string; // Use 'as' for safe casting which returns null if the cast fails
+            string npcName = filterVariables["Name"] as string; // Use 'as' for safe casting which returns null if the cast fails
             if (npcName == null)
             {
-                Debug.LogError("NPC Name is not set in filterVariables when popping the window.");
+                Debug.LogError("Name is not set in filterVariables when popping the window.");
                 return; // Optionally handle this case if the NPC Name should always be present
             }
 
@@ -1164,7 +1164,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 string comparisonOperator = item.DialogueData[cComparison] as string;
                 string valueToCompare = item.DialogueData[cValue] as string;
 
-                if (variableName == "NPC NoLore")
+                if (variableName == "NoLore")
                 {
                     npcNoLoreConditionFound = true;
                 }
@@ -1178,7 +1178,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // If no specific NPC NoLore condition has been set, enforce the default condition
             if (!npcNoLoreConditionFound)
             {
-                if (!EvaluateSingleCondition("NPC NoLore", "==", "0", random))
+                if (!EvaluateSingleCondition("NoLore", "==", "0", random))
                 {
                     return false;
                 }
@@ -1851,7 +1851,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 int currentDayOfYear = dateTime.DayOfYear;
 
                 // Get the NPC's name from filterVariables
-                string npcName = filterVariables["NPC Name"] as string;
+                string npcName = filterVariables["Name"] as string;
 
                 // Check if the NPC name exists in numAnswersGivenDialogue and get the count of answers given and the day of year
                 if (numAnswersGivenDialogue.TryGetValue(npcName, out (int numAnswers, int dayOfYear) npcData))
@@ -1897,9 +1897,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         {
                             // Step 1: Get the NPC Name from filterVariables
                             string aleNpcName = interlocutorKey;  // Default value if NPC name is not found
-                            if (filterVariables.ContainsKey("NPC Name"))
+                            if (filterVariables.ContainsKey("Name"))
                             {
-                                aleNpcName = filterVariables["NPC Name"] as string;
+                                aleNpcName = filterVariables["Name"] as string;
                             }
 
                             // Set the ale price
@@ -2042,10 +2042,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         if (listItem.questionType == TalkManager.QuestionType.WhereAmI)
                         {
                             // Check if the NPC is in a building using filterVariables
-                            if (filterVariables.TryGetValue("NPC In Building", out object isInBuilding) && (int)isInBuilding == 1)
+                            if (filterVariables.TryGetValue("In Building", out object isInBuilding) && (int)isInBuilding == 1)
                             {
                                 // NPC is inside a building, get the building name
-                                if (filterVariables.TryGetValue("NPC Building Name", out object buildingName))
+                                if (filterVariables.TryGetValue("Building Name", out object buildingName))
                                 {
                                     // Convert the building name to lowercase and add it to knownCaptions
                                     string buildingNameToAdd = buildingName.ToString().ToLower();
@@ -2057,13 +2057,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 }
                                 else
                                 {
-                                    Debug.Log("NPC Building Name not found in filterVariables.");
+                                    Debug.Log("Building Name not found in filterVariables.");
                                 }
                             }
                             else
                             {
                                 // NPC is not in a building, get the region name
-                                if (filterVariables.TryGetValue("Current Region Name", out object currentRegionName))
+                                if (filterVariables.TryGetValue("Region Name", out object currentRegionName))
                                 {
                                     // Convert the region name to lowercase and add it to knownCaptions
                                     string regionNameToAdd = currentRegionName.ToString().ToLower();
@@ -2075,12 +2075,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 }
                                 else
                                 {
-                                    Debug.Log("Current Region Name not found in filterVariables.");
+                                    Debug.Log("Region Name not found in filterVariables.");
                                 }
                             }
 
                             // NPC is not in a building, get the location name
-                            if (filterVariables.TryGetValue("Current Location Name", out object currentLocationName))
+                            if (filterVariables.TryGetValue("Location Name", out object currentLocationName))
                             {
                                 // Convert the region name to lowercase and add it to knownCaptions
                                 string locationNameToAdd = currentLocationName.ToString().ToLower();
@@ -2092,7 +2092,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             }
                             else
                             {
-                                Debug.Log("Current Location Name not found in filterVariables.");
+                                Debug.Log("Location Name not found in filterVariables.");
                             }
                         }
 
@@ -2138,48 +2138,48 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     FactionFile.FactionData factionData;
 
                     // Store static NPC data
-                    filterVariables["NPC Type"] = "Static";
-                    filterVariables["NPC Hash"] = npcData.hash;
-                    filterVariables["NPC Flags"] = npcData.flags;
-                    filterVariables["NPC Faction ID"] = npcData.factionID;
-                    filterVariables["NPC Name Seed"] = npcData.nameSeed;
-                    filterVariables["NPC Gender"] = npcData.gender;
-                    filterVariables["NPC Race"] = npcData.race;
-                    filterVariables["NPC Context"] = npcData.context;
-                    filterVariables["NPC Map ID"] = npcData.mapID;
-                    filterVariables["NPC Location ID"] = npcData.locationID;
+                    filterVariables["Type"] = "Static";
+                    filterVariables["Hash"] = npcData.hash;
+                    filterVariables["Flags"] = npcData.flags;
+                    filterVariables["Faction ID"] = npcData.factionID;
+                    filterVariables["Name Seed"] = npcData.nameSeed;
+                    filterVariables["Gender"] = npcData.gender;
+                    filterVariables["Race"] = npcData.race;
+                    filterVariables["Context"] = npcData.context;
+                    filterVariables["Map ID"] = npcData.mapID;
+                    filterVariables["Location ID"] = npcData.locationID;
                     // Check if the NPC is inside a building
                     if (GameManager.Instance.IsPlayerInside && GameManager.Instance.PlayerEnterExit.ExteriorDoors.Length > 0)
                     {
-                        filterVariables["NPC In Building"] = 1; // NPC is inside a building
+                        filterVariables["In Building"] = 1; // NPC is inside a building
 
                         // Try to get the discovered building data
                         PlayerGPS.DiscoveredBuilding discoveredBuilding;
                         if (GameManager.Instance.PlayerGPS.GetAnyBuilding(GameManager.Instance.PlayerEnterExit.ExteriorDoors[0].buildingKey, out discoveredBuilding))
                         {
-                            filterVariables["NPC Building Name"] = discoveredBuilding.displayName;
-                            filterVariables["NPC Building Type"] = discoveredBuilding.buildingType;
-                            //filterVariables["NPC Building FactionID"] = discoveredBuilding.factionId;
+                            filterVariables["Building Name"] = discoveredBuilding.displayName;
+                            filterVariables["Building Type"] = discoveredBuilding.buildingType;
+                            //filterVariables["Building FactionID"] = discoveredBuilding.factionId;
                         }
                         else
                         {
                             // Fallback to a default building name if no discovered building is found
-                            filterVariables["NPC Building Name"] = "Unknown Building"; // Default value if no building name can be retrieved
+                            filterVariables["Building Name"] = "Unknown Building"; // Default value if no building name can be retrieved
                         }
                     }
                     else
                     {
-                        filterVariables["NPC In Building"] = 0; // NPC is not inside a building
-                        filterVariables["NPC Building Name"] = "Outside"; // Default value if outside
+                        filterVariables["In Building"] = 0; // NPC is not inside a building
+                        filterVariables["Building Name"] = "Outside"; // Default value if outside
                     }
-                    filterVariables["NPC Building Key"] = npcData.buildingKey;
-                    filterVariables["NPC Name Bank"] = npcData.nameBank;
-                    filterVariables["NPC Billboard Archive Index"] = npcData.billboardArchiveIndex;
-                    filterVariables["NPC Billboard Record Index"] = npcData.billboardRecordIndex;
-                    filterVariables["NPC Name"] = staticNpc.DisplayName;
-                    filterVariables["Is Child NPC"] = staticNpc.IsChildNPC;
+                    filterVariables["Building Key"] = npcData.buildingKey;
+                    filterVariables["Name Bank"] = npcData.nameBank;
+                    filterVariables["Billboard Archive Index"] = npcData.billboardArchiveIndex;
+                    filterVariables["Billboard Record Index"] = npcData.billboardRecordIndex;
+                    filterVariables["Name"] = staticNpc.DisplayName;
+                    filterVariables["Child NPC"] = staticNpc.IsChildNPC;
 
-                    filterVariables["NPC NoLore"] = 0; // Default or other values not specified
+                    filterVariables["NoLore"] = 0; // Default or other values not specified
 
                     // Store faction details if available
                     if (persistentFactionData.GetFactionData(npcData.factionID, out factionData))
@@ -2200,7 +2200,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         // Set NPC NoLore based on Faction ID for children
                         if (npcData.factionID == 514)
                         {
-                            filterVariables["NPC NoLore"] = 1;
+                            filterVariables["NoLore"] = 1;
                         }
                         else
                         {
@@ -2208,11 +2208,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             int factionType = factionData.type;
                             if (new int[] { 2, 3, 5, 6, 8, 9, 10, 13 }.Contains(factionType))
                             {
-                                filterVariables["NPC NoLore"] = 2;
+                                filterVariables["NoLore"] = 2;
                             }
                             else if (new int[] { 0, 1, 4 }.Contains(factionType))
                             {
-                                filterVariables["NPC NoLore"] = 3;
+                                filterVariables["NoLore"] = 3;
                             }
                         }
                     }
@@ -2225,14 +2225,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 if (mobileNpc != null)
                 {
                     // Store mobile NPC data
-                    filterVariables["NPC Type"] = "Mobile";
-                    filterVariables["NPC Race"] = mobileNpc.Race;
-                    filterVariables["NPC Gender"] = mobileNpc.Gender;
-                    filterVariables["NPC Name"] = mobileNpc.NameNPC;
-                    filterVariables["Is Guard"] = mobileNpc.IsGuard;
-                    filterVariables["NPC Outfit Variant"] = mobileNpc.PersonOutfitVariant;
+                    filterVariables["Type"] = "Mobile";
+                    filterVariables["Race"] = mobileNpc.Race;
+                    filterVariables["Gender"] = mobileNpc.Gender;
+                    filterVariables["Name"] = mobileNpc.NameNPC;
+                    filterVariables["Guard"] = mobileNpc.IsGuard;
+                    filterVariables["Outfit Variant"] = mobileNpc.PersonOutfitVariant;
                     filterVariables["Faction Social Group"] = 1;
-                    filterVariables["NPC NoLore"] = 0;  // Default or other values not specified
+                    filterVariables["NoLore"] = 0;  // Default or other values not specified
                 }
             }
             else
@@ -2250,8 +2250,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             filterVariables["Day"] = dateTime.DayOfMonth;
             filterVariables["DayName"] = dateTime.DayName;
             filterVariables["Season"] = dateTime.SeasonName;
-            filterVariables["Is Day"] = dateTime.IsDay;
-            filterVariables["Is Night"] = dateTime.IsNight;
+            filterVariables["Daytime"] = dateTime.IsDay;
+            filterVariables["Nighttime"] = dateTime.IsNight;
             filterVariables["Massar Lunar Phase"] = dateTime.MassarLunarPhase;
             filterVariables["Secunda Lunar Phase"] = dateTime.SecundaLunarPhase;
 
@@ -2259,10 +2259,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             WeatherManager weatherManager = GameManager.Instance.WeatherManager;
 
             // Store weather information
-            filterVariables["Is Raining"] = weatherManager.IsRaining;
-            filterVariables["Is Storming"] = weatherManager.IsStorming;
-            filterVariables["Is Snowing"] = weatherManager.IsSnowing;
-            filterVariables["Is Overcast"] = weatherManager.IsOvercast;
+            filterVariables["Raining"] = weatherManager.IsRaining;
+            filterVariables["Storming"] = weatherManager.IsStorming;
+            filterVariables["Snowing"] = weatherManager.IsSnowing;
+            filterVariables["Overcast"] = weatherManager.IsOvercast;
 
             // Calculate holiday ID and store holiday name
             const int holidaysStartID = 8349;
@@ -2273,46 +2273,46 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(holidaysStartID + holidayId);
                 if (tokens != null && tokens.Length > 0)
                 {
-                    filterVariables["Current Holiday"] = tokens[0].text;
+                    filterVariables["Holiday"] = tokens[0].text;
                 }
                 else
                 {
-                    filterVariables["Current Holiday"] = "Failed to retrieve holiday name.";
+                    filterVariables["Holiday"] = "Failed to retrieve holiday name.";
                 }
             }
             else
             {
-                filterVariables["Current Holiday"] = "No holiday today.";
+                filterVariables["Holiday"] = "No holiday today.";
             }
 
             // Get the instance of PlayerGPS from GameManager
             PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
 
             // Store Player GPS data
-            filterVariables["Current Map Pixel"] = playerGPS.CurrentMapPixel;
-            filterVariables["Current Climate Index"] = playerGPS.CurrentClimateIndex;
-            filterVariables["Current Politic Index"] = playerGPS.CurrentPoliticIndex;
-            filterVariables["Current Region Index"] = playerGPS.CurrentRegionIndex;
-            filterVariables["Current Location Index"] = playerGPS.CurrentLocationIndex;
-            filterVariables["Current MapID"] = playerGPS.CurrentMapID;
-            filterVariables["Has Current Location"] = playerGPS.HasCurrentLocation;
-            filterVariables["Is Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
-            filterVariables["Current Region"] = playerGPS.CurrentRegion;
-            filterVariables["Current Region Name"] = playerGPS.CurrentRegionName;
-            filterVariables["Current Climate Settings"] = playerGPS.ClimateSettings;
-            filterVariables["Current Location"] = playerGPS.CurrentLocation;
-            filterVariables["Current Location Name"] = playerGPS.CurrentLocation.Name;
-            filterVariables["Current Location Type"] = playerGPS.CurrentLocationType;
+            filterVariables["Map Pixel"] = playerGPS.CurrentMapPixel;
+            filterVariables["Climate Index"] = playerGPS.CurrentClimateIndex;
+            filterVariables["Politic Index"] = playerGPS.CurrentPoliticIndex;
+            filterVariables["Region Index"] = playerGPS.CurrentRegionIndex;
+            filterVariables["Location Index"] = playerGPS.CurrentLocationIndex;
+            filterVariables["MapID"] = playerGPS.CurrentMapID;
+            filterVariables["Has Location"] = playerGPS.HasCurrentLocation;
+            filterVariables["Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
+            filterVariables["Region"] = playerGPS.CurrentRegion;
+            filterVariables["Region Name"] = playerGPS.CurrentRegionName;
+            filterVariables["Climate Settings"] = playerGPS.ClimateSettings;
+            filterVariables["Location"] = playerGPS.CurrentLocation;
+            filterVariables["Location Name"] = playerGPS.CurrentLocation.Name;
+            filterVariables["Location Type"] = playerGPS.CurrentLocationType;
 
             // Utility Methods of PlayerGPS
-            filterVariables["Name Bank of Current Region"] = playerGPS.GetNameBankOfCurrentRegion();
-            filterVariables["Race of Current Region"] = playerGPS.GetRaceOfCurrentRegion();
-            filterVariables["People of Current Region (Faction ID)"] = playerGPS.GetPeopleOfCurrentRegion();
-            filterVariables["Current Region Faction (Faction ID)"] = playerGPS.GetCurrentRegionFaction();
-            filterVariables["Court of Current Region (Faction ID)"] = playerGPS.GetCourtOfCurrentRegion();
-            filterVariables["Current Region Vampire Clan (Faction ID)"] = playerGPS.GetCurrentRegionVampireClan();
-            filterVariables["Dominant Temple in Current Region (Faction ID)"] = playerGPS.GetTempleOfCurrentRegion();
-            filterVariables["Is Player In Town"] = playerGPS.IsPlayerInTown();
+            filterVariables["Name Bank of Region"] = playerGPS.GetNameBankOfCurrentRegion();
+            filterVariables["Race of Region"] = playerGPS.GetRaceOfCurrentRegion();
+            filterVariables["People of Region (Faction ID)"] = playerGPS.GetPeopleOfCurrentRegion();
+            filterVariables["Region Faction (Faction ID)"] = playerGPS.GetCurrentRegionFaction();
+            filterVariables["Court of Region (Faction ID)"] = playerGPS.GetCourtOfCurrentRegion();
+            filterVariables["Region Vampire Clan (Faction ID)"] = playerGPS.GetCurrentRegionVampireClan();
+            filterVariables["Dominant Temple in Region (Faction ID)"] = playerGPS.GetTempleOfCurrentRegion();
+            filterVariables["Player In Town"] = playerGPS.IsPlayerInTown();
 
             // Get the instance of PlayerEntity from GameManager
             PlayerEntity player = GameManager.Instance.PlayerEntity;
@@ -2443,8 +2443,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             int reactionToPlayer_0_1_2 = GetReactionToPlayer_0_1_2(npcSocialGroup); // Calculate reaction based on social group and tone
 
             int totalReactionToPlayer = reactionToPlayer + reactionToPlayer_0_1_2; // Sum up all reactions
-            filterVariables["NPC Reaction"] = totalReactionToPlayer; // Store the total reaction in the filter variables
-            int npcNoLore = Convert.ToInt32(filterVariables["NPC NoLore"]);
+            filterVariables["Reaction"] = totalReactionToPlayer; // Store the total reaction in the filter variables
+            int npcNoLore = Convert.ToInt32(filterVariables["NoLore"]);
 
             maxNumAnswersNpcGivesDialogue = 1 + totalReactionToPlayer + npcNoLore;
 
