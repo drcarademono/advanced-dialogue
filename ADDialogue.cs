@@ -74,37 +74,84 @@ public class ADDialogue : MonoBehaviour
 
     public void LoadLocalizationKeys()
     {
-        string filePath = "AD_Keys.csv";
-        if (ModManager.Instance.TryGetAsset<TextAsset>(filePath, false, out TextAsset csvAsset))
+        LocalizationKeys.Clear();
+        bool hasReplacedKeysCSV = false;
+
+        // Traverse mods in reverse order to prioritize higher-load-order mods
+        foreach (var mod in ModManager.Instance.Mods.Reverse())
         {
-            using (StringReader reader = new StringReader(csvAsset.text))
+            if (!mod.Enabled) continue;
+
+            // For bundled assets in-game
+            if (mod.AssetBundle != null && mod.AssetBundle.GetAllAssetNames().Length > 0)
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                foreach (var assetName in mod.AssetBundle.GetAllAssetNames())
                 {
-                    string[] values = line.Split('\t'); // Using tab delimiter for TSV
-                    if (values.Length < 2) continue;
+                    string correctedAssetName = assetName.Replace("Assets/Assets", "Assets");
 
-                    string key = values[0];
-                    string text = values[1];
-
-                    // If the value contains '|', split into a list; otherwise, store it as a single string
-                    if (text.Contains("|"))
+                    // If we find AD_Keys.csv, use it as the replacement if not already done
+                    if (!hasReplacedKeysCSV && correctedAssetName.EndsWith("AD_Keys.csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        LocalizationKeys[key] = text.Split('|').ToList();
-                    }
-                    else
-                    {
-                        LocalizationKeys[key] = text;
+                        if (mod.AssetBundle.LoadAsset<TextAsset>(correctedAssetName) is TextAsset csvAsset)
+                        {
+                            Debug.Log($"Replacing AD_Keys.csv from mod '{mod.Title}'.");
+                            ParseLocalizationKeys(csvAsset);
+                            hasReplacedKeysCSV = true;
+                        }
                     }
                 }
             }
-            Debug.Log("Localization keys loaded successfully.");
+    #if UNITY_EDITOR
+            // In the Unity Editor, check for loose files instead of AssetBundles
+            else if (mod.IsVirtual && mod.ModInfo.Files.Any())
+            {
+                foreach (var filename in mod.ModInfo.Files)
+                {
+                    string filePath = Path.Combine(Application.dataPath, filename).Replace("Assets/Assets", "Assets");
+
+                    if (File.Exists(filePath) && filename.EndsWith("AD_Keys.csv", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var csvText = File.ReadAllText(filePath);
+                        var csvAsset = new TextAsset(csvText); // Wrap file content in TextAsset for compatibility
+
+                        if (!hasReplacedKeysCSV)
+                        {
+                            Debug.Log($"Replacing AD_Keys.csv from mod '{mod.Title}' (Editor mode).");
+                            ParseLocalizationKeys(csvAsset);
+                            hasReplacedKeysCSV = true;
+                        }
+                    }
+                }
+            }
+    #endif
         }
+
+        if (!hasReplacedKeysCSV)
+            Debug.LogWarning("No AD_Keys.csv found in any enabled mod.");
         else
+            Debug.Log("Localization keys loaded successfully from all mods.");
+    }
+
+    private void ParseLocalizationKeys(TextAsset csvAsset)
+    {
+        using (StringReader reader = new StringReader(csvAsset.text))
         {
-            Debug.LogError("Localization keys file not found.");
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                string[] values = line.Split('\t');
+                if (values.Length < 2) continue;
+
+                string key = values[0];
+                string text = values[1];
+
+                if (text.Contains("|"))
+                    LocalizationKeys[key] = text.Split('|').ToList();
+                else
+                    LocalizationKeys[key] = text;
+            }
         }
+        Debug.Log("Localization keys parsed successfully.");
     }
 
     public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
@@ -112,65 +159,76 @@ public class ADDialogue : MonoBehaviour
     public void LoadDialogueTopicsFromCSV()
     {
         dialogueListItems.Clear();
+        Dictionary<string, TextAsset> dialogueFiles = new Dictionary<string, TextAsset>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var mod in ModManager.Instance.Mods)
+        // Traverse mods in reverse order to prioritize higher-load-order mods
+        foreach (var mod in ModManager.Instance.Mods.Reverse())
         {
             if (!mod.Enabled)
                 continue;
 
-            // Check if AssetBundle is present and has assets
+            // For in-game (AssetBundle) loading
             if (mod.AssetBundle != null && mod.AssetBundle.GetAllAssetNames().Length > 0)
             {
-                Debug.Log($"Loading dialogue assets from mod '{mod.Title}'.");
+                Debug.Log($"Checking AssetBundle in mod '{mod.Title}' for '_Dialogue.csv' files.");
 
-                // Filter for files ending in "_Dialogue.csv"
-                foreach (var assetName in mod.AssetBundle.GetAllAssetNames().Where(name => name.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase)))
+                foreach (var assetName in mod.AssetBundle.GetAllAssetNames())
                 {
-                    // Correct path in case of any duplicates
                     string correctedAssetName = assetName.Replace("Assets/Assets", "Assets");
 
-                    // Try to load asset as TextAsset
-                    if (mod.AssetBundle.LoadAsset<TextAsset>(correctedAssetName) is TextAsset csvAsset)
+                    // Check if the asset is a *_Dialogue.csv file
+                    if (correctedAssetName.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase))
                     {
-                        Debug.Log($"Loading dialogue topics from asset '{correctedAssetName}' in mod '{mod.Title}'.");
-                        LoadDialogueFromTextAsset(csvAsset);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Failed to load asset '{correctedAssetName}' as TextAsset in mod '{mod.Title}'.");
+                        string fileName = Path.GetFileName(correctedAssetName);
+
+                        // Add or replace dialogue file based on load order
+                        if (!dialogueFiles.ContainsKey(fileName))
+                        {
+                            if (mod.AssetBundle.LoadAsset<TextAsset>(correctedAssetName) is TextAsset csvAsset)
+                            {
+                                Debug.Log($"Adding or replacing dialogue file '{fileName}' from mod '{mod.Title}' based on load order.");
+                                dialogueFiles[fileName] = csvAsset;
+                            }
+                        }
                     }
                 }
             }
     #if UNITY_EDITOR
-            // In the Unity Editor, support for loose CSV files
+            // For Unity Editor (loose file) loading
             else if (mod.IsVirtual && mod.ModInfo.Files.Any())
             {
-                Debug.Log($"Mod '{mod.Title}' is virtual and may contain loose files. Checking for loose '_Dialogue.csv' files.");
+                Debug.Log($"Mod '{mod.Title}' is virtual and may contain loose '_Dialogue.csv' files.");
 
                 foreach (var filename in mod.ModInfo.Files.Where(file => file.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase)))
                 {
                     string filePath = Path.Combine(Application.dataPath, filename);
                     filePath = filePath.Replace("Assets/Assets", "Assets");  // Correct any duplicate Assets in the path
 
-                    Debug.Log($"Checking for existence of loose file at '{filePath}'.");
-
                     if (File.Exists(filePath))
                     {
-                        Debug.Log($"Found loose dialogue file '{filePath}' in mod '{mod.Title}'.");
-
                         var csvText = File.ReadAllText(filePath);
                         var csvAsset = new TextAsset(csvText); // Wrap file content as TextAsset for compatibility
-                        LoadDialogueFromTextAsset(csvAsset);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Expected file '{filePath}' not found in mod '{mod.Title}'.");
+                        string fileName = Path.GetFileName(filename);
+
+                        // Add or replace dialogue file based on load order
+                        if (!dialogueFiles.ContainsKey(fileName))
+                        {
+                            Debug.Log($"Adding or replacing loose dialogue file '{fileName}' from mod '{mod.Title}' (Editor mode) based on load order.");
+                            dialogueFiles[fileName] = csvAsset;
+                        }
                     }
                 }
             }
     #endif
         }
-        Debug.Log("Dialogue topics loaded successfully from all mods.");
+
+        // Load dialogue data from each selected file in dialogueFiles
+        foreach (var csvAsset in dialogueFiles.Values)
+        {
+            Debug.Log($"Loading dialogue topics from '{csvAsset.name}'.");
+            LoadDialogueFromTextAsset(csvAsset);
+        }
+        Debug.Log("Dialogue topics loaded successfully from all mods based on priority.");
     }
 
     private void LoadDialogueFromTextAsset(TextAsset csvAsset)
@@ -215,7 +273,7 @@ public class ADDialogue : MonoBehaviour
                 dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
                 dialogueItem.DialogueData.Add("C3_Value", values[12]);
 
-                dialogueListItems.Insert(0, dialogueItem); // Insert at beginning for priority
+                dialogueListItems.Add(dialogueItem); // Append to keep order within file
                 Debug.Log($"Added dialogue item '{item.caption}' from line {lineNumber}.");
                 lineNumber++;
             }

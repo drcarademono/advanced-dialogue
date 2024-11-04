@@ -1079,21 +1079,33 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         public void InitializeKnownCaptions()
         {
-            // Ensure that knownCaptions has been loaded from the CSV
-            if (knownCaptions == null || knownCaptions.Count == 0)
+            // Check if LocalizationKeys is available
+            if (ADDialogue.LocalizationKeys == null || ADDialogue.LocalizationKeys.Count == 0)
             {
-                Debug.LogError("knownCaptions not loaded from CSV.");
+                Debug.LogError("LocalizationKeys not loaded in ADDialogue.");
                 return;
             }
 
-            // Iterate over each item in knownCaptions from the CSV and add to the internal list if not already present
-            foreach (string caption in knownCaptions)
+            // Specific keys we want to ensure are always present in knownCaptions
+            string[] requiredKeys = { "anyAdvice", "whoAreYou", "buyAnAle", "buyABeer" };
+
+            // Add the values of required keys from LocalizationKeys to knownCaptions if not already included
+            foreach (var key in requiredKeys)
             {
-                if (!knownCaptions.Contains(caption))
+                if (ADDialogue.LocalizationKeys.TryGetValue(key, out var value))
                 {
-                    knownCaptions.Add(caption);
+                    string valueString = value.ToString();
+
+                    // Check if this value is already in knownCaptions
+                    if (!knownCaptions.Contains(valueString))
+                    {
+                        knownCaptions.Add(valueString);
+                        Debug.Log($"Added '{valueString}' to knownCaptions from key '{key}' in LocalizationKeys.");
+                    }
                 }
             }
+
+            Debug.Log("Known captions ensured in knownCaptions list.");
         }
 
         protected virtual void UpdateTellMeAboutTopics()
