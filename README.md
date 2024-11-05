@@ -10,7 +10,7 @@ The mod currently includes:
 - Dialogue for all joinable factions and witch covens.
 - Unique NPC dialogue (for the first release, only King Gothryd of Daggerfall is scripted).
 - A system for other modders to add dialogue for their own mods.
-- Ability to completely localize (translate) the mod.
+- The ability to completely localize (translate) the mod.
 
 **How to Get Started**
 Head to one of the covered regions (see above) and start talking to NPCs. Ask them for advice and "Where Am I?" NPCs are busy, so watch your tone and your local reputation if you'd like them to answer more of your endless questions. Make sure to ask different people about the same topic, as different NPCs have different bits of information, and sometimes different opinions.
