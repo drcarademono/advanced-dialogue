@@ -94,7 +94,7 @@ public class ADDialogue : MonoBehaviour
                     {
                         if (mod.AssetBundle.LoadAsset<TextAsset>(correctedAssetName) is TextAsset csvAsset)
                         {
-                            Debug.Log($"Replacing AD_Keys.csv from mod '{mod.Title}'.");
+                            Debug.Log($"AD: Replacing AD_Keys.csv from mod '{mod.Title}'.");
                             ParseLocalizationKeys(csvAsset);
                             hasReplacedKeysCSV = true;
                         }
@@ -116,7 +116,7 @@ public class ADDialogue : MonoBehaviour
 
                         if (!hasReplacedKeysCSV)
                         {
-                            Debug.Log($"Replacing AD_Keys.csv from mod '{mod.Title}' (Editor mode).");
+                            Debug.Log($"AD: Replacing AD_Keys.csv from mod '{mod.Title}' (Editor mode).");
                             ParseLocalizationKeys(csvAsset);
                             hasReplacedKeysCSV = true;
                         }
@@ -127,9 +127,9 @@ public class ADDialogue : MonoBehaviour
         }
 
         if (!hasReplacedKeysCSV)
-            Debug.LogWarning("No AD_Keys.csv found in any enabled mod.");
+            Debug.LogWarning("AD: No AD_Keys.csv found in any enabled mod.");
         else
-            Debug.Log("Localization keys loaded successfully from all mods.");
+            Debug.Log("AD: Localization keys loaded successfully from all mods.");
     }
 
     private void ParseLocalizationKeys(TextAsset csvAsset)
@@ -151,7 +151,7 @@ public class ADDialogue : MonoBehaviour
                     LocalizationKeys[key] = text;
             }
         }
-        Debug.Log("Localization keys parsed successfully.");
+        Debug.Log("AD: Localization keys parsed successfully.");
     }
 
     public List<DialogueListItem> dialogueListItems = new List<DialogueListItem>();
@@ -170,7 +170,7 @@ public class ADDialogue : MonoBehaviour
             // For in-game (AssetBundle) loading
             if (mod.AssetBundle != null && mod.AssetBundle.GetAllAssetNames().Length > 0)
             {
-                Debug.Log($"Checking AssetBundle in mod '{mod.Title}' for '_Dialogue.csv' files.");
+                Debug.Log($"AD: Checking AssetBundle in mod '{mod.Title}' for '_Dialogue.csv' files.");
 
                 foreach (var assetName in mod.AssetBundle.GetAllAssetNames())
                 {
@@ -186,7 +186,7 @@ public class ADDialogue : MonoBehaviour
                         {
                             if (mod.AssetBundle.LoadAsset<TextAsset>(correctedAssetName) is TextAsset csvAsset)
                             {
-                                Debug.Log($"Adding or replacing dialogue file '{fileName}' from mod '{mod.Title}' based on load order.");
+                                Debug.Log($"AD: Adding or replacing dialogue file '{fileName}' from mod '{mod.Title}' based on load order.");
                                 dialogueFiles[fileName] = csvAsset;
                             }
                         }
@@ -197,7 +197,7 @@ public class ADDialogue : MonoBehaviour
             // For Unity Editor (loose file) loading
             else if (mod.IsVirtual && mod.ModInfo.Files.Any())
             {
-                Debug.Log($"Mod '{mod.Title}' is virtual and may contain loose '_Dialogue.csv' files.");
+                Debug.Log($"AD: Mod '{mod.Title}' is virtual and may contain loose '_Dialogue.csv' files.");
 
                 foreach (var filename in mod.ModInfo.Files.Where(file => file.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase)))
                 {
@@ -213,7 +213,7 @@ public class ADDialogue : MonoBehaviour
                         // Add or replace dialogue file based on load order
                         if (!dialogueFiles.ContainsKey(fileName))
                         {
-                            Debug.Log($"Adding or replacing loose dialogue file '{fileName}' from mod '{mod.Title}' (Editor mode) based on load order.");
+                            Debug.Log($"AD: Adding or replacing loose dialogue file '{fileName}' from mod '{mod.Title}' (Editor mode) based on load order.");
                             dialogueFiles[fileName] = csvAsset;
                         }
                     }
@@ -225,15 +225,15 @@ public class ADDialogue : MonoBehaviour
         // Load dialogue data from each selected file in dialogueFiles
         foreach (var csvAsset in dialogueFiles.Values)
         {
-            Debug.Log($"Loading dialogue topics from '{csvAsset.name}'.");
+            Debug.Log($"AD: Loading dialogue topics from '{csvAsset.name}'.");
             LoadDialogueFromTextAsset(csvAsset);
         }
-        Debug.Log("Dialogue topics loaded successfully from all mods based on priority.");
+        Debug.Log("AD: Dialogue topics loaded successfully from all mods based on priority.");
     }
 
     private void LoadDialogueFromTextAsset(TextAsset csvAsset)
     {
-        Debug.Log($"Parsing dialogue data from asset '{csvAsset.name}'.");
+        //Debug.Log($"Parsing dialogue data from asset '{csvAsset.name}'.");
 
         using (StringReader reader = new StringReader(csvAsset.text))
         {
@@ -242,10 +242,10 @@ public class ADDialogue : MonoBehaviour
 
             while ((line = reader.ReadLine()) != null)
             {
-                Debug.Log($"Reading line {lineNumber} in asset '{csvAsset.name}': {line}");
+                //Debug.Log($"Reading line {lineNumber} in asset '{csvAsset.name}': {line}");
                 string[] values = line.Split('\t');
 
-                if (values.Length < 13)
+                if (values.Length < 12)
                 {
                     Debug.LogWarning($"Skipping malformed line {lineNumber} in '{csvAsset.name}'.");
                     continue;
@@ -254,31 +254,31 @@ public class ADDialogue : MonoBehaviour
                 TalkManager.ListItem item = new TalkManager.ListItem
                 {
                     type = TalkManager.ListItemType.Item,
-                    caption = values[1],
+                    caption = values[0],
                     questionType = TalkManager.QuestionType.OrganizationInfo,
                     index = lineNumber
                 };
 
                 DialogueListItem dialogueItem = new DialogueListItem(item);
                 dialogueItem.DialogueData.Add("DialogueIndex", lineNumber);
-                dialogueItem.DialogueData.Add("Answer", values[2]);
-                dialogueItem.DialogueData.Add("AddCaption", values[3]);
-                dialogueItem.DialogueData.Add("C1_Variable", values[4]);
-                dialogueItem.DialogueData.Add("C1_Comparison", values[5]);
-                dialogueItem.DialogueData.Add("C1_Value", values[6]);
-                dialogueItem.DialogueData.Add("C2_Variable", values[7]);
-                dialogueItem.DialogueData.Add("C2_Comparison", values[8]);
-                dialogueItem.DialogueData.Add("C2_Value", values[9]);
-                dialogueItem.DialogueData.Add("C3_Variable", values[10]);
-                dialogueItem.DialogueData.Add("C3_Comparison", values[11]);
-                dialogueItem.DialogueData.Add("C3_Value", values[12]);
+                dialogueItem.DialogueData.Add("Answer", values[1]);
+                dialogueItem.DialogueData.Add("AddCaption", values[2]);
+                dialogueItem.DialogueData.Add("C1_Variable", values[3]);
+                dialogueItem.DialogueData.Add("C1_Comparison", values[4]);
+                dialogueItem.DialogueData.Add("C1_Value", values[5]);
+                dialogueItem.DialogueData.Add("C2_Variable", values[6]);
+                dialogueItem.DialogueData.Add("C2_Comparison", values[7]);
+                dialogueItem.DialogueData.Add("C2_Value", values[8]);
+                dialogueItem.DialogueData.Add("C3_Variable", values[9]);
+                dialogueItem.DialogueData.Add("C3_Comparison", values[10]);
+                dialogueItem.DialogueData.Add("C3_Value", values[11]);
 
                 dialogueListItems.Add(dialogueItem); // Append to keep order within file
-                Debug.Log($"Added dialogue item '{item.caption}' from line {lineNumber}.");
+                //Debug.Log($"Added dialogue item '{item.caption}' from line {lineNumber}.");
                 lineNumber++;
             }
         }
-        Debug.Log($"Completed parsing dialogue data from asset '{csvAsset.name}'.");
+        Debug.Log($"AD: Completed parsing dialogue data from asset '{csvAsset.name}'.");
     }
 
     public static string ToggleADLogging(string[] args)
@@ -299,7 +299,7 @@ public class ADDialogue : MonoBehaviour
             instance.dialogueListItems.Clear();
         }
         // Reload dialogue data
-        //instance.LoadLocalizationKeys();
+        instance.LoadLocalizationKeys();
         instance.LoadDialogueTopicsFromCSV();
 
         // Return the current state as a string to be displayed in the console
