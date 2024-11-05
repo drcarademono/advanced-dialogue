@@ -9,7 +9,7 @@ The mod currently includes:
 - Additional dialogue for Abibon-Gora, Alcaire, Alik'r Desert, Anticlere, Antiphyllos, Bergama, Betony, Bhoriane, Daenia, Dak'fron, Dragontail Mountains, Dwynnen, Glenpoint, Isle of Balfiera, Lainlyn, Kairou, Myrkwasa, Totambu, and Wrothgarian Mountains.
 - Dialogue for all joinable factions and witch covens.
 - Unique NPC dialogue (for the first release, only King Gothryd of Daggerfall is scripted).
-- A system for other modders to add dialogue from their own mods.
+- A system for other modders to add dialogue for their own mods.
 - Ability to completely localize (translate) the mod.
 
 **How to Get Started**
