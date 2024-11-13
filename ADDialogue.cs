@@ -4,6 +4,7 @@ using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop;
+using DaggerfallWorkshop.Localization;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Formulas;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
@@ -14,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Wenzil.Console;
 
 public class ADDialogue : MonoBehaviour
@@ -70,6 +72,8 @@ public class ADDialogue : MonoBehaviour
 
         ConsoleCommandsDatabase.RegisterCommand("AD_Log", "Toggles dialogue system logging for filter data and condition evaluations.", "", ToggleADLogging);
         ConsoleCommandsDatabase.RegisterCommand("AD_Reload", "Reloads all dialogue data and localization keys.", "", ReloadDialogueData);
+        ConsoleCommandsDatabase.RegisterCommand("AD_KnownCaptions", "Lists all known captions.", "", ListKnownCaptions);
+        ConsoleCommandsDatabase.RegisterCommand("AD_AllCaptions", "Lists all captions in dialogue items.", "", ListAllCaptions);
     }
 
     public void LoadLocalizationKeys()
@@ -90,7 +94,7 @@ public class ADDialogue : MonoBehaviour
                     string correctedAssetName = assetName.Replace("Assets/Assets", "Assets");
 
                     // If we find AD_Keys.csv, use it as the replacement if not already done
-                    if (!hasReplacedKeysCSV && correctedAssetName.EndsWith("AD_Keys.csv", StringComparison.OrdinalIgnoreCase))
+                    if (!hasReplacedKeysCSV && correctedAssetName.EndsWith("AD_Keys.csv", StringComparison.InvariantCultureIgnoreCase))
                     {
                         if (mod.AssetBundle.LoadAsset<TextAsset>(correctedAssetName) is TextAsset csvAsset)
                         {
@@ -109,9 +113,10 @@ public class ADDialogue : MonoBehaviour
                 {
                     string filePath = Path.Combine(Application.dataPath, filename).Replace("Assets/Assets", "Assets");
 
-                    if (File.Exists(filePath) && filename.EndsWith("AD_Keys.csv", StringComparison.OrdinalIgnoreCase))
+                    if (File.Exists(filePath) && filename.EndsWith("AD_Keys.csv", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        var csvText = File.ReadAllText(filePath);
+                        // Read file as UTF-8 to support non-Latin characters
+                        var csvText = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
                         var csvAsset = new TextAsset(csvText); // Wrap file content in TextAsset for compatibility
 
                         if (!hasReplacedKeysCSV)
@@ -159,7 +164,7 @@ public class ADDialogue : MonoBehaviour
     public void LoadDialogueTopicsFromCSV()
     {
         dialogueListItems.Clear();
-        Dictionary<string, TextAsset> dialogueFiles = new Dictionary<string, TextAsset>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, TextAsset> dialogueFiles = new Dictionary<string, TextAsset>(StringComparer.InvariantCultureIgnoreCase);
 
         // Traverse mods in reverse order to prioritize higher-load-order mods
         foreach (var mod in ModManager.Instance.Mods.Reverse())
@@ -177,7 +182,7 @@ public class ADDialogue : MonoBehaviour
                     string correctedAssetName = assetName.Replace("Assets/Assets", "Assets");
 
                     // Check if the asset is a *_Dialogue.csv file
-                    if (correctedAssetName.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase))
+                    if (correctedAssetName.EndsWith("_Dialogue.csv", StringComparison.InvariantCultureIgnoreCase))
                     {
                         string fileName = Path.GetFileName(correctedAssetName);
 
@@ -197,20 +202,17 @@ public class ADDialogue : MonoBehaviour
             // For Unity Editor (loose file) loading
             else if (mod.IsVirtual && mod.ModInfo.Files.Any())
             {
-                Debug.Log($"AD: Mod '{mod.Title}' is virtual and may contain loose '_Dialogue.csv' files.");
-
-                foreach (var filename in mod.ModInfo.Files.Where(file => file.EndsWith("_Dialogue.csv", StringComparison.OrdinalIgnoreCase)))
+                foreach (var filename in mod.ModInfo.Files.Where(file => file.EndsWith("_Dialogue.csv", StringComparison.InvariantCultureIgnoreCase)))
                 {
-                    string filePath = Path.Combine(Application.dataPath, filename);
-                    filePath = filePath.Replace("Assets/Assets", "Assets");  // Correct any duplicate Assets in the path
+                    string filePath = Path.Combine(Application.dataPath, filename).Replace("Assets/Assets", "Assets");
 
                     if (File.Exists(filePath))
                     {
-                        var csvText = File.ReadAllText(filePath);
+                        // Read file as UTF-8 to support non-Latin characters
+                        var csvText = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
                         var csvAsset = new TextAsset(csvText); // Wrap file content as TextAsset for compatibility
                         string fileName = Path.GetFileName(filename);
 
-                        // Add or replace dialogue file based on load order
                         if (!dialogueFiles.ContainsKey(fileName))
                         {
                             Debug.Log($"AD: Adding or replacing loose dialogue file '{fileName}' from mod '{mod.Title}' (Editor mode) based on load order.");
@@ -274,7 +276,7 @@ public class ADDialogue : MonoBehaviour
                 dialogueItem.DialogueData.Add("C3_Value", values[11]);
 
                 dialogueListItems.Add(dialogueItem); // Append to keep order within file
-                //Debug.Log($"Added dialogue item '{item.caption}' from line {lineNumber}.");
+                Debug.Log($"Added dialogue item '{item.caption}' from line {lineNumber}.");
                 lineNumber++;
             }
         }
@@ -304,6 +306,30 @@ public class ADDialogue : MonoBehaviour
 
         // Return the current state as a string to be displayed in the console
         return "Advanced Dialogue data has been reloaded.";
+    }
+
+    public static string ListKnownCaptions(string[] args)
+    {
+        if (ADTalkWindow.knownCaptions.Count == 0)
+            return "AD: No known captions found.";
+
+        StringBuilder sb = new StringBuilder("AD: Known captions:\n");
+        foreach (string caption in ADTalkWindow.knownCaptions)
+            sb.AppendLine(caption);
+
+        return sb.ToString();
+    }
+
+    public static string ListAllCaptions(string[] args)
+    {
+        if (instance.dialogueListItems.Count == 0)
+            return "AD: No dialogue items found.";
+
+        StringBuilder sb = new StringBuilder("AD: All captions in dialogue items:\n");
+        foreach (DialogueListItem item in instance.dialogueListItems)
+            sb.AppendLine(item.ListItem.caption);
+
+        return sb.ToString();
     }
 
     /// <summary>

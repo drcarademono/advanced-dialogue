@@ -1128,7 +1128,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             baseTopics.AddRange(knownDialogueItems);
 
             baseTopics.Sort((item1, item2) =>
-                string.Compare(RemoveDefiniteArticlePrefix(item1.ListItem.caption), RemoveDefiniteArticlePrefix(item2.ListItem.caption), StringComparison.OrdinalIgnoreCase));
+                string.Compare(RemoveDefiniteArticlePrefix(item1.ListItem.caption), RemoveDefiniteArticlePrefix(item2.ListItem.caption), StringComparison.InvariantCultureIgnoreCase));
 
             // Use the filtered list to set the topics in your list box
             SetListboxTopics(ref listboxTopic, baseTopics.Select(di => di.ListItem).ToList());
@@ -1207,16 +1207,16 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 case "==":
                     // Return true if any value matches exactly
-                    return valuesToCompare.Any(v => v.Equals(variableValueStr, StringComparison.OrdinalIgnoreCase));
+                    return valuesToCompare.Any(v => v.Equals(variableValueStr, StringComparison.InvariantCultureIgnoreCase));
                 case "!=":
                     // Return true if none of the values match exactly
-                    return valuesToCompare.All(v => !v.Equals(variableValueStr, StringComparison.OrdinalIgnoreCase));
+                    return valuesToCompare.All(v => !v.Equals(variableValueStr, StringComparison.InvariantCultureIgnoreCase));
                 case "~~":
                     // Return true if any value is found within the variable value (partial match)
-                    return valuesToCompare.Any(v => variableValueStr.IndexOf(v, StringComparison.OrdinalIgnoreCase) >= 0);
+                    return valuesToCompare.Any(v => variableValueStr.IndexOf(v, StringComparison.InvariantCultureIgnoreCase) >= 0);
                 case "!~":
                     // Return true if none of the values are found within the variable value (partial match)
-                    return valuesToCompare.All(v => variableValueStr.IndexOf(v, StringComparison.OrdinalIgnoreCase) < 0);
+                    return valuesToCompare.All(v => variableValueStr.IndexOf(v, StringComparison.InvariantCultureIgnoreCase) < 0);
                 case "<":
                 case ">":
                 case "<=":
@@ -1297,7 +1297,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Find the first article that matches the start of the caption, ignoring case
             string matchedArticle = definiteArticles
                 .Select(article => article.Trim() + " ")
-                .FirstOrDefault(article => caption.StartsWith(article, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(article => caption.StartsWith(article, StringComparison.InvariantCultureIgnoreCase));
 
             // If a match was found, remove it and trim; otherwise, return the original caption
             if (matchedArticle != null)
@@ -1680,7 +1680,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 string buyABeer = ADDialogue.LocalizationKeys["buyABeer"] as string;
                 string whoAreYou = ADDialogue.LocalizationKeys["whoAreYou"] as string;
 
-                if (listItem.caption.Equals(anyAdvice, StringComparison.OrdinalIgnoreCase))
+                if (listItem.caption.Equals(anyAdvice, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (isFirstAdviceRequest)
                     {
@@ -1693,7 +1693,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         currentQuestion = adviceVariants[UnityEngine.Random.Range(0, adviceVariants.Count)];
                     }
                 }
-                else if (listItem.caption.Equals(buyAnAle, StringComparison.OrdinalIgnoreCase))
+                else if (listItem.caption.Equals(buyAnAle, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (isFirstBuyAleRequest)
                     {
@@ -1706,7 +1706,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         currentQuestion = buyAleVariants[UnityEngine.Random.Range(0, buyAleVariants.Count)];
                     }
                 }
-                else if (listItem.caption.Equals(buyABeer, StringComparison.OrdinalIgnoreCase))
+                else if (listItem.caption.Equals(buyABeer, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (isFirstBuyBeerRequest)
                     {
@@ -1719,7 +1719,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         currentQuestion = buyBeerVariants[UnityEngine.Random.Range(0, buyBeerVariants.Count)];
                     }
                 }
-                else if (listItem.caption.Equals(whoAreYou, StringComparison.OrdinalIgnoreCase))
+                else if (listItem.caption.Equals(whoAreYou, StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (isFirstWhoAreYouRequest)
                     {
@@ -1892,8 +1892,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
                         string captionLower = dialogueItem.ListItem.caption.ToLower();
 
-                        if (listItem.caption.Equals(buyAnAle, StringComparison.OrdinalIgnoreCase) ||
-                            listItem.caption.Equals(buyABeer, StringComparison.OrdinalIgnoreCase))
+                        if (listItem.caption.Equals(buyAnAle, StringComparison.InvariantCultureIgnoreCase) ||
+                            listItem.caption.Equals(buyABeer, StringComparison.InvariantCultureIgnoreCase))
                         {
                             // Step 1: Get the NPC Name from filterVariables
                             string aleNpcName = interlocutorKey;  // Default value if NPC name is not found
@@ -1927,7 +1927,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             maxNumAnswersNpcGivesDialogue += 3;
 
                             // Determine the correct article and drink type for the message
-                            string drinkType = listItem.caption.Equals(buyABeer, StringComparison.OrdinalIgnoreCase) ? beerKey : aleKey;
+                            string drinkType = listItem.caption.Equals(buyABeer, StringComparison.InvariantCultureIgnoreCase) ? beerKey : aleKey;
 
                             // Step 5: Show a message confirming the purchase with the NPC's name and the price of the drink
                             string boughtDrinkTemplate = ADDialogue.LocalizationKeys["boughtDrink"] as string;
