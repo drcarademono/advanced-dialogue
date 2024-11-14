@@ -2126,6 +2126,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
         {
             filterVariables.Clear(); // Clear the existing dictionary before populating
 
+            // Get the instance of PlayerGPS from GameManager
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+
             //Debug.Log("Checking NPC Type...");
             if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static)
             {
@@ -2164,13 +2167,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
                         else
                         {
                             // Fallback to a default building name if no discovered building is found
-                            filterVariables["Building Name"] = "Unknown Building"; // Default value if no building name can be retrieved
+                            filterVariables["Building Name"] = TextManager.Instance.GetLocalizedLocationName(playerGPS.CurrentMapID, playerGPS.CurrentLocation.Name); // Default value if no building name can be retrieved
                         }
                     }
                     else
                     {
                         filterVariables["In Building"] = 0; // NPC is not inside a building
-                        filterVariables["Building Name"] = "Outside"; // Default value if outside
+                        filterVariables["Building Name"] = TextManager.Instance.GetLocalizedLocationName(playerGPS.CurrentMapID, playerGPS.CurrentLocation.Name); // Default value if outside
                     }
                     filterVariables["Building Key"] = npcData.buildingKey;
                     filterVariables["Name Bank"] = npcData.nameBank;
@@ -2184,7 +2187,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                     // Store faction details if available
                     if (persistentFactionData.GetFactionData(npcData.factionID, out factionData))
                     {
-                        filterVariables["Faction Name"] = factionData.name;
+                        filterVariables["Faction Name"] = TextManager.Instance.GetLocalizedFactionName(npcData.factionID, factionData.name);
                         filterVariables["Faction Parent"] = factionData.parent;
                         filterVariables["Faction Type"] = factionData.type;
                         filterVariables["Faction Reputation"] = factionData.rep;
@@ -2267,7 +2270,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Calculate holiday ID and store holiday name
             const int holidaysStartID = 8349;
             uint minutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
-            int holidayId = Formulas.FormulaHelper.GetHolidayId(minutes, GameManager.Instance.PlayerGPS.CurrentRegionIndex);
+            int holidayId = Formulas.FormulaHelper.GetHolidayId(minutes, playerGPS.CurrentRegionIndex);
             if (holidayId != 0)
             {
                 TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(holidaysStartID + holidayId);
@@ -2285,9 +2288,6 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 filterVariables["Holiday"] = "No holiday today.";
             }
 
-            // Get the instance of PlayerGPS from GameManager
-            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
-
             // Store Player GPS data
             filterVariables["Map Pixel"] = playerGPS.CurrentMapPixel;
             filterVariables["Climate Index"] = playerGPS.CurrentClimateIndex;
@@ -2298,10 +2298,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             filterVariables["Has Location"] = playerGPS.HasCurrentLocation;
             filterVariables["Player In Location Rect"] = playerGPS.IsPlayerInLocationRect;
             filterVariables["Region"] = playerGPS.CurrentRegion;
-            filterVariables["Region Name"] = playerGPS.CurrentRegionName;
+            filterVariables["Region Name"] = TextManager.Instance.GetLocalizedRegionName(playerGPS.CurrentRegionIndex);
             filterVariables["Climate Settings"] = playerGPS.ClimateSettings;
             filterVariables["Location"] = playerGPS.CurrentLocation;
-            filterVariables["Location Name"] = playerGPS.CurrentLocation.Name;
+            filterVariables["Location Name"] = TextManager.Instance.GetLocalizedLocationName(playerGPS.CurrentMapID, playerGPS.CurrentLocation.Name);
             filterVariables["Location Type"] = playerGPS.CurrentLocationType;
 
             // Utility Methods of PlayerGPS
@@ -2344,7 +2344,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 DaggerfallUnityItem item = inventory.GetItem(i);
                 if (item != null)
                 {
-                    string itemName = item.ItemName;
+                    // Use TextManager to get the localized name, with item.ItemName as fallback if localization is unavailable
+                    string itemName = TextManager.Instance.GetLocalizedItemName(item.TemplateIndex, item.ItemName);
+                    
                     if (itemSummary.ContainsKey(itemName))
                     {
                         itemSummary[itemName] += item.stackCount;
@@ -2356,7 +2358,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 }
             }
 
-            // Store each item count in filterVariables
+            // Store each item count in filterVariables with localized names
             foreach (var item in itemSummary)
             {
                 filterVariables["Item: " + item.Key] = item.Value;
