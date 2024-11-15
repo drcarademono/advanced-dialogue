@@ -1948,6 +1948,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             string[] possibleAnswers = answerData.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
                             int selectedIndex = UnityEngine.Random.Range(0, possibleAnswers.Length);
                             answer = possibleAnswers[selectedIndex].Trim();
+                            answer = ProcessAnswerWithMacros(answer, this.GetMacroContextProvider(), -1);
                         }
                         // Check if the caption has been responded to before
                         else if (!ADDialogue.AD_Log && respondedCaptions.Contains(captionLower))
