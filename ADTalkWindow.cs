@@ -1194,9 +1194,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 variableValue = random.Next(1, 101); // Generate a random number from 1 to 100
             }
-            else if (!filterVariables.TryGetValue(variableName, out variableValue))
+            else if (!filterVariables.TryGetValue(variableName, out variableValue) || variableValue == null)
             {
-                Debug.Log($"Variable '{variableName}' not found in filterVariables.");
+                Debug.LogWarning($"ADTalkWindow: condition skipped because '{variableName}' is missing or null");
                 return false;
             }
 
@@ -1263,7 +1263,16 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         private void LoadLocalizedText()
         {
-            knownCaptions = (List<string>)ADDialogue.LocalizationKeys["knownCaptions"];
+            // Merge localized captions with existing knownCaptions, avoiding duplicates
+            var localizedCaptions = (List<string>)ADDialogue.LocalizationKeys["knownCaptions"];
+            foreach (var caption in localizedCaptions)
+            {
+                if (!knownCaptions.Contains(caption.ToLower())) // Avoid duplicates
+                {
+                    knownCaptions.Add(caption.ToLower());
+                }
+            }
+
             repeatedResponses = ((List<string>)ADDialogue.LocalizationKeys["repeatedResponses"]).ToArray();
             exceededMaxResponses = ((List<string>)ADDialogue.LocalizationKeys["exceededMaxResponses"]).ToArray();
         }
@@ -1923,8 +1932,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             // Subtract the ale price from the player's gold
                             playerEntity.DeductGoldAmount(alePrice);
 
-                            // Step 4: Increase maxNumAnswersNpcGivesDialogue by 3 after buying an ale or beer for the NPC
-                            maxNumAnswersNpcGivesDialogue += 3;
+                            // Step 4: Decrease numAnswersGivenDialogue by 3 after buying an ale or beer for the NPC
+                            currentNumAnswersGivenDialogue = currentNumAnswersGivenDialogue - 3;
+                            numAnswersGivenDialogue[npcName] = (currentNumAnswersGivenDialogue, currentDayOfYear);
 
                             // Determine the correct article and drink type for the message
                             string drinkType = listItem.caption.Equals(buyABeer, StringComparison.InvariantCultureIgnoreCase) ? beerKey : aleKey;
@@ -2080,11 +2090,12 @@ namespace DaggerfallWorkshop.Game.UserInterface
                                 }
                             }
 
-                            // NPC is not in a building, get the location name
-                            if (filterVariables.TryGetValue("Location Name", out object currentLocationName))
+                            // NPC is not in a building, get the location name (only if non-null string)
+                            if (filterVariables.TryGetValue("Location Name", out object currentLocationName)
+                                && currentLocationName is string currentLocationNameStr
+                                && !string.IsNullOrEmpty(currentLocationNameStr))
                             {
-                                // Convert the region name to lowercase and add it to knownCaptions
-                                string locationNameToAdd = currentLocationName.ToString().ToLower();
+                                string locationNameToAdd = currentLocationNameStr.ToLower();
                                 if (!knownCaptions.Contains(locationNameToAdd))
                                 {
                                     knownCaptions.Add(locationNameToAdd);
@@ -2093,7 +2104,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             }
                             else
                             {
-                                Debug.Log("Location Name not found in filterVariables.");
+                                Debug.Log("ADTalkWindow: skipping Location Name because it's missing or null.");
                             }
                         }
 
@@ -2310,7 +2321,18 @@ namespace DaggerfallWorkshop.Game.UserInterface
             filterVariables["Race of Region"] = playerGPS.GetRaceOfCurrentRegion();
             filterVariables["People of Region (Faction ID)"] = playerGPS.GetPeopleOfCurrentRegion();
             filterVariables["Region Faction (Faction ID)"] = playerGPS.GetCurrentRegionFaction();
-            filterVariables["Court of Region (Faction ID)"] = playerGPS.GetCourtOfCurrentRegion();
+            // Court of Region (Faction ID) - requires exception for Mournoth
+            try
+            {
+                int courtFactionId = playerGPS.GetCourtOfCurrentRegion();
+                filterVariables["Court of Region (Faction ID)"] = courtFactionId;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ADTalkWindow: unable to get court of current region – {e.Message}");
+                // Optionally set a default or leave it out:
+                filterVariables["Court of Region (Faction ID)"] = null;
+            }
             filterVariables["Region Vampire Clan (Faction ID)"] = playerGPS.GetCurrentRegionVampireClan();
             filterVariables["Dominant Temple in Region (Faction ID)"] = playerGPS.GetTempleOfCurrentRegion();
             filterVariables["Player In Town"] = playerGPS.IsPlayerInTown();
